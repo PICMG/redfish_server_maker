@@ -1,0 +1,23 @@
+{
+  "domain": "http://localhost:8080",
+  "api": {
+    "root_service": "/redfish/v1/",
+    "session_service": "/redfish/v1/SessionService",
+    "account_service": "/redfish/v1/AccountService",
+    "task_service": "/redfish/v1/TaskService",
+    "event_service": "/redfish/v1/EventService",
+    "actions": {
+      "system": {
+        "base_url": "/redfish/v1/Systems/",
+        "test_object_Id": "437XR1138R2",
+        "bio_change_password": "/Bios/Actions/Bios.ChangePassword"
+      }
+    }
+  },
+  "credentials": {
+    "auth": {
+      "UserName": "Administrator",
+      "Password": "test"
+    }
+  }
+}

@@ -1,0 +1,16 @@
+spring:
+  data:
+    mongodb:
+      database: RedfishDB
+      host: 127.0.0.1
+      port: 27017
+
+async:
+  task:
+    wait-time: 5
+    retry-time: 60
+
+
+smtp-service:
+  username:
+  password:

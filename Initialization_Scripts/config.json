@@ -1,0 +1,27 @@
+{
+  "json_file_path":"",
+  "credentials": {
+    "repository_url": "https://github.com/prosm056/SER517-group11-RedfishServer.git",
+    "repo_name": "SER517-group11-RedfishServer",
+    "mongo_creds": {
+      "mongo_client_url": "mongodb://localhost:27017/",
+      "mongo_database": "RedfishDB"
+    },
+    "redfish_creds": {
+      "mockup_url": "https://www.dmtf.org/sites/default/files/standards/documents/",
+      "mockup_file_name": "DSP2043_2022.2",
+      "priviledge_file_name": "DSP8011_2022.2",
+      "mockup_dir_name": "public-rackmount1"
+    },
+    "schema_url": "https://redfish.dmtf.org/schemas/v1/openapi.yaml",
+    "action_info_schema_url":"https://redfish.dmtf.org/schemas/v1/ActionInfo.yaml",
+    "message_registry_schema_url":"https://redfish.dmtf.org/schemas/v1/MessageRegistry.yaml",
+    "privilege_registry_schema_url":"https://redfish.dmtf.org/schemas/v1/PrivilegeRegistry.yaml",
+    "generator_url": "https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/4.3.1/openapi-generator-cli-4.3.1.jar",
+    "repo_all_models_path": "/SER517-group11-RedfishServer/Redfish_Server/src/main/java/com/redfishserver/Redfish_Server/RFmodels",
+    "repo_config_path": "/SER517-group11-RedfishServer/Redfish_Server/src/main/java/com/redfishserver/Redfish_Server/config",
+    "repo_server_pom_path": "/SER517-group11-RedfishServer/Redfish_Server",
+    "repo_all_models_dir_name": "AllModels",
+    "index_file_name": "index.json"
+  }
+}
