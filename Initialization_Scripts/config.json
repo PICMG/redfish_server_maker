@@ -1,8 +1,8 @@
 {
   "json_file_path":"",
   "credentials": {
-    "repository_url": "https://github.com/prosm056/SER517-group11-RedfishServer.git",
-    "repo_name": "SER517-group11-RedfishServer",
+    "repository_url": "https://github.com/PICMG/redfish_server_maker.git",
+    "repo_name": "redfish_server_maker",
     "mongo_creds": {
       "mongo_client_url": "mongodb://localhost:27017/",
       "mongo_database": "RedfishDB"
@@ -18,9 +18,9 @@
     "message_registry_schema_url":"https://redfish.dmtf.org/schemas/v1/MessageRegistry.yaml",
     "privilege_registry_schema_url":"https://redfish.dmtf.org/schemas/v1/PrivilegeRegistry.yaml",
     "generator_url": "https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/4.3.1/openapi-generator-cli-4.3.1.jar",
-    "repo_all_models_path": "/SER517-group11-RedfishServer/Redfish_Server/src/main/java/com/redfishserver/Redfish_Server/RFmodels",
-    "repo_config_path": "/SER517-group11-RedfishServer/Redfish_Server/src/main/java/com/redfishserver/Redfish_Server/config",
-    "repo_server_pom_path": "/SER517-group11-RedfishServer/Redfish_Server",
+    "repo_all_models_path": "/redfish_server_maker/Redfish_Server/src/main/java/com/redfishserver/Redfish_Server/RFmodels",
+    "repo_config_path": "/redfish_server_maker/Redfish_Server/src/main/java/com/redfishserver/Redfish_Server/config",
+    "repo_server_pom_path": "/redfish_server_maker/Redfish_Server",
     "repo_all_models_dir_name": "AllModels",
     "index_file_name": "index.json"
   }
