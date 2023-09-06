@@ -48,7 +48,7 @@ rm apache-maven-3.8.8-bin.tar.gz
 ```
 Add the following to the end of your user .profile file:
 ```
-M2_HOME='/opt/apache-maven-3.6.3'
+M2_HOME='/opt/apache-maven-3.8.8'
 PATH="$M2_HOME/bin:$PATH"
 export PATH
 ```
@@ -58,6 +58,7 @@ source .profile
 ```
 ### Install MongoDB Community
 Install MongoDB Community Edition by following the instructions found on the MongoDB web site (https://www.mongodb.com).
+You may wish to set the mongodb service to start each time your machine boots (see instructions on mongodb.com).
 
 ### Installing Python Library Modules
 Depending on your python installation, you may need to install wget, pymongo and yaml libraries.  you can do this by executing the following command-line prompt:
@@ -66,12 +67,6 @@ sudo apt-get install python3-wget python3-pymongo python3-yaml
 ```
 
 ## Configuration
-Before you build a server instance, you will need to modify the config.json file found within the Initialization_Scripts folder of this repository.  In specific, the following path values will need to be updated:
-* "repo_all_models_path": Update to point to the "/Redfish_Server/src/main/java/com/redfishserver/Redfish_Server/RFmodels" folder of this repository.
-* "repo_config_path": Update to point to the "/Redfish_Server/src/main/java/com/redfishserver/Redfish_Server/config" folder of this repository.
-* "repo_server_pom_path": Update to point to the "/Redfish_Server" folder of this repository.
-
-If you would like to build a server from a specific mockup, you should also upate the "json_file_path" to the local path of the mockup structure for your server.
  
 ## Building A Server Instance
 

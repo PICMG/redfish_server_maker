@@ -261,6 +261,7 @@ def generateModels(schema_url,currrent_dir):
         yaml_data["paths"] = object()
         temp ={}
         temp["title"] = "Redfish Server API"
+        temp['version'] = "1.0.0"
         yaml_data["info"] = temp
         del yaml_data["title"]
         with open(yaml_file_name, 'w') as file:
@@ -284,12 +285,12 @@ def generateModels(schema_url,currrent_dir):
         full_file_name = os.path.join(src, file_name)
         if os.path.isfile(full_file_name):
             shutil.copy(full_file_name, destination_folder)
-
+    
     os.remove(jar_file_name)
     os.remove("conf.json")
     os.remove(yaml_file_name)
     shutil.rmtree(os.getcwd().replace("\\", "/")+'/spring-boot-codegenerator')
-    
+        
 
 #THe below function updates the Redfish models to remove the version number and add MongoDB annotations to all models.
 #This function also generates Reading and Writing converters for all Redfish Enums.
