@@ -530,8 +530,17 @@ def start_Redfish_Server():
 
 #The below function is the entry point of this file
 if __name__ == "__main__":
+    # load the configuration switches from the configuration file
     loadConfigJsonFile()
+
+    # clone the clean framework from the PICMG repository
     cloneRepo()
+
+    # download the redfish schema from the redfish server and
+    # use openAPI to convert them to Json code. 
     downloadModels()
+
+    # download the mockup from the specified uri and
+    # build the mongoDB database from the mockup.
     download_and_initialize_redfish_mockups()
     start_Redfish_Server()

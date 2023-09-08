@@ -59,6 +59,8 @@ source .profile
 ### Install MongoDB Community
 Install MongoDB Community Edition by following the instructions found on the MongoDB web site (https://www.mongodb.com).
 You may wish to set the mongodb service to start each time your machine boots (see instructions on mongodb.com).
+install mongo client tools
+sudo apt install mongodb-clients
 
 ### Installing Python Library Modules
 Depending on your python installation, you may need to install wget, pymongo and yaml libraries.  you can do this by executing the following command-line prompt:
@@ -69,6 +71,7 @@ sudo apt-get install python3-wget python3-pymongo python3-yaml
 ## Configuration
  
 ## Building A Server Instance
+Add mongo RedfishDB --eval "printjson(db.dropDatabase())" to build process
 
 ## Extending Behaviors
 
