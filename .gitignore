@@ -1,4 +1,5 @@
 Initialization_Scripts/mockups/**
+Initialization_Scripts/redfish_server_maker/**
 Initialization_Scripts/SER**
 out**.txt
 Tests/.idea
