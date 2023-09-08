@@ -135,6 +135,9 @@ def createPrivilegeDatabase(mockup_dir_path):
 #The below function downloads the redfish mockup data if json_file_path is not specified in config.
 #If json_file_path is specified it reads json files from that path.
 def download_and_initialize_redfish_mockups():
+    #drop the redfish database if it exists
+    os.system('mongo RedfishDB --eval "printjson(db.dropDatabase())')
+    
     currrent_dir = os.getcwd()
     if configJson["json_file_path"] == "":
         tempMockupDirName = "mockups"        
