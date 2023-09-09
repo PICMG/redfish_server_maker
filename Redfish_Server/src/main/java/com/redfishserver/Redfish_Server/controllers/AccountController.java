@@ -183,7 +183,8 @@ public class AccountController {
     }
 
     @RequestMapping(value="/Account", method=RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> addAccount(@RequestBody AccountDTO account, @RequestHeader String authorization) {
+    public ResponseEntity<?> addAccount(@RequestBody ManagerAccount_ManagerAccount account, @RequestHeader String authorization) {
+//    public ResponseEntity<?> addAccount(@RequestBody AccountDTO account, @RequestHeader String authorization) {
         if(!apiAuthService.isUserAuthorizedForOperationType(authorization.substring(7), controllerEntityName, "POST")) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Service recognized the credentials in the request but those credentials do not possess" +
                     "authorization to complete this request.");
@@ -193,11 +194,12 @@ public class AccountController {
         OffsetDateTime startTime = OffsetDateTime.now();
         Boolean accountCreated =  false;
         ManagerAccount_ManagerAccount userAccount = new ManagerAccount_ManagerAccount();
-        userAccount.userName(account.getUserName());
-        userAccount.password(account.getPassword());
-        userAccount.roleId(account.getRoleId());
-        userAccount.enabled(account.getEnabled());
-        userAccount.locked(account.getLocked());
+//        userAccount.userName(account.getUserName());
+//        userAccount.password(account.getPassword());
+//        userAccount.roleId(account.getRoleId());
+//        userAccount.enabled(account.getEnabled());
+//        userAccount.locked(account.getLocked());
+        userAccount = account;
         try {
             Future<Boolean> resp = accountService.addAccount(startTime, newTaskId, userAccount);
             accountCreated = resp.get(taskWaitTime, TimeUnit.SECONDS);
