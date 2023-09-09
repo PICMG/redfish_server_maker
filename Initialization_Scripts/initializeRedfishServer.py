@@ -546,4 +546,7 @@ if __name__ == "__main__":
     # download the mockup from the specified uri and
     # build the mongoDB database from the mockup.
     download_and_initialize_redfish_mockups()
+
+    # set the administrator account passsword
+    os.system('mongosh RedfishDB --eval \"db.ManagerAccount.updateOne({UserName:\"Administrator\"},{\"$set\":{Password:null}})')
     start_Redfish_Server()
