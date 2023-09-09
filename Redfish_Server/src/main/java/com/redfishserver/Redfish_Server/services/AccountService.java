@@ -113,6 +113,7 @@ public class AccountService {
         }
         ManagerAccount_ManagerAccount userAccount = accountRepository.getByUserName(account.getUserName());
         try {
+system.println("name "+account.getName());
             if(userAccount == null)
                 throw new ChangeSetPersister.NotFoundException();
             if(account.getName()!=null)
@@ -132,6 +133,7 @@ public class AccountService {
 
             System.out.println("Async Account Service Complete");
             accountRepository.save(userAccount);
+system.println("user name "+userAccount.getName());
             if(startTime.getSecond() > taskWaitTime+1) {
                 taskService.updateTaskState(taskId.toString(), Task_TaskState.COMPLETED, userAccount);
             }
