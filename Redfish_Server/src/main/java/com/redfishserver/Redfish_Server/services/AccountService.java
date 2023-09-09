@@ -115,9 +115,7 @@ public class AccountService {
         try {
             if(userAccount == null)
                 throw new ChangeSetPersister.NotFoundException();
-        System.out.println("before update name");
             if(account.getName()!=null)
-        System.out.println("update name");
                 userAccount.setName(account.getName());
             if(account.getDescription()!=null)
                 userAccount.setDescription(account.getDescription());
@@ -155,12 +153,21 @@ public class AccountService {
     @Async
     public Future<Boolean> addAccount(OffsetDateTime startTime, Integer taskId, ManagerAccount_ManagerAccount account) throws Exception {
         ManagerAccount_ManagerAccount userAccount = accountRepository.getByUserName(account.getUserName());
+// debug
+System.out.println("Add Account 1");
+System.out.println(account.getName());
         if(userAccount != null)
             throw new Exception("UserName " + account.getUserName() + " Already Exist");
         List<ManagerAccount_ManagerAccount> listAccount = accountRepository.findAll();
-        if(listAccount.size() == 0)
+        if(listAccount.size() == 0) {
+// debug
+System.out.println("Add Account 2");
+System.out.println(account.getName());
             account.setId("1");
-        else {
+        } else {
+// debug
+System.out.println("Add Account 3");
+System.out.println(account.getName());
             long max = 0;
             for(ManagerAccount_ManagerAccount account1 : listAccount){
                 max = Math.max(max, Long.valueOf(account1.getId()));
@@ -169,10 +176,16 @@ public class AccountService {
             account.setId(max+"");
             account.setAtOdataId("/redfish/v1/AccountService/Accounts/"+max);
             if(account.getPassword()!=null) {
+// debug
+System.out.println("Add Account 4");
+System.out.println(account.getName());
                 String encPassword = passwordEncryptorService.encryptPassword(account.getPassword().toString());
                 account.setPassword(JsonNullable.of(encPassword));
             }
         }
+// debug
+System.out.println("Add Account 5");
+System.out.println(account.getName());
         accountRepository.save(account);
 
         System.out.println("Async Account Service Complete");
