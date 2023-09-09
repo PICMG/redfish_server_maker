@@ -71,7 +71,6 @@ sudo apt-get install python3-wget python3-pymongo python3-yaml
 ## Configuration
  
 ## Building A Server Instance
-Add mongo RedfishDB --eval "printjson(db.dropDatabase())" to build process
 
 ## Extending Behaviors
 

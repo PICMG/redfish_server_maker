@@ -537,7 +537,7 @@ if __name__ == "__main__":
     cloneRepo()
 
     #drop the redfish database if it exists
-    os.system('mongo RedfishDB --eval "printjson(db.dropDatabase())"')
+    os.system('mongosh RedfishDB --eval "printjson(db.dropDatabase())"')
 
     # download the redfish schema from the redfish server and
     # use openAPI to convert them to Json code. 
