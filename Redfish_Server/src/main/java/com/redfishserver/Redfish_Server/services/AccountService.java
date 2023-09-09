@@ -115,8 +115,9 @@ public class AccountService {
         try {
             if(userAccount == null)
                 throw new ChangeSetPersister.NotFoundException();
+        System.out.println("before update name");
             if(account.getName()!=null)
-            System.out.println("update name");
+        System.out.println("update name");
                 userAccount.setName(account.getName());
             if(account.getDescription()!=null)
                 userAccount.setDescription(account.getDescription());
