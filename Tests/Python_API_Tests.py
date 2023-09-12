@@ -16,6 +16,7 @@
 
 import requests
 import json
+import pymongo
 import collections
 
 
@@ -340,6 +341,23 @@ def eventService(my_headers):
 
 #The below request is used to test actions
 def biosChangePassword(my_headers):
+    # this function uses the Bios Change Password action to test the server's ability to 
+    # process action requests.  For any valid request, an actioninfo object must exist, but
+    # these might not be present if the mockup used is directly from the DMTF repository.
+    #
+    # If you would like to add the actioninfo manually, you can do so with the following
+    # shell command:
+    # mongosh RedfishDB --eval 'db.ActionInfo.insertOne({"@odata.type": "#ActionInfo.v1_2_0.ActionInfo","Id": "BiosChangePasswordActionInfo","Name": "BiosChangePassword Action Info","Parameters": [{"Name": "PasswordName","Required": true,"DataType": "String","AllowableValues": ["AdminPassword","UserPassword"]},{"Name": "OldPassword","Required": true,"DataType": "String"},{"Name": "NewPassword","Required": true,"DataType": "String"}],"Oem": {},"@odata.id": "/redfish/v1/Systems/437XR1138R2/Bios/BiosChangePasswordActionInfo"})'
+    
+    # query mongodb to see if the actioninfo object exists for this test
+    client = pymongo.MongoClient('mongodb://localhost:27017/')
+    database = client['RedfishDB']
+    query_result = database['ActionInfo'].find_one({'Id': 'BiosChangePasswordActionInfo'})
+    if query_result is None:
+        # here if there is no action info to use for the test
+        print('   BiosChangePasswordActionInfo missing from database.  Tests skipped.')
+        return
+
     mockPasswordName = "AdminPassword"
     mockOldPassword = "123"
     mockNewPassword = "2424"

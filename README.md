@@ -67,10 +67,39 @@ Depending on your python installation, you may need to install wget, pymongo and
 ```
 sudo apt-get install python3-wget python3-pymongo python3-yaml
 ```
+Note: if you get errors during the build process that mongodb keys cannot have dots in them (e.g., "@odata.id') then you need to update the version of pymongo that you are using. 
 
 ## Configuration
- 
+Once installation is complete, you may wish to modify the config.json file found in the root of this project repository.  the only values that might need to be chaged are:
+* json_file_path
+* extra_schema_path
+* credentials.repository_destination
+* redfish_creds
+    * mockup_url
+    * mockup_file_name
+    * priviledge_file_name
+    * mockup_dir_name
+By default, the build process will instantiate a server based on DSP2043_2022.2 public-rackmount1
+
 ## Building A Server Instance
+from the command prompt, execute the following command
+```
+python3 initializeRedfishServer.py
+```
+The automated script process will
+1. clone the server template files from PICMG.org
+2. download redfish schema from DMTF.org
+3. execute the OpenAPI generator to create java code for the schema
+4. download the redfish mockup from DMTF.org (or copy the local mockup files)
+5. populate the mongoDB database (RedfishDB) with tables for the server build
+6. build the server instance by invoking maven
+7. run the server instance
+
+## Testing the Server Instance
+A rudementary server test is provided as an example in the Tests folder of this repository.  To execute the tests, run the following command at the command prompt in the Tests folder.
+```
+python3 Python_API_Tests.py
+```
 
 ## Extending Behaviors
 
