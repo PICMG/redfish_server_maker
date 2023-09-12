@@ -1,7 +1,7 @@
 {
+  "json_file_path":"",
+  "extra_schema_path":"",
   "credentials": {
-    "json_file_path":"",
-    "extra_schema_path":"",
     "repository_destination": "~/temp",
     "redfish_creds": {
       "mockup_url": "https://www.dmtf.org/sites/default/files/standards/documents/",
