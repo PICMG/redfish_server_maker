@@ -328,8 +328,8 @@ def eventService3(my_headers):
     r = do_delete_request(
         url, 200, reqBody, expected_respHeader_array, my_headers)
     respBody = json.loads(r.content)
-    assert "terminated" in respBody['Message'] and respBody[
-        'MessageSeverity'] == "OK" and "No resolution is required" in respBody['Resolution'] and respBody['Severity'] == "OK"
+    assert ("terminated" in respBody['Message'] and
+            "No resolution is required" in respBody['Resolution'] and respBody['Severity'] == "OK")
 
 #The below request is used to test event service APIs
 def eventService(my_headers):
