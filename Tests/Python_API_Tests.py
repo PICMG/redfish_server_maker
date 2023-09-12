@@ -355,7 +355,7 @@ def biosChangePassword(my_headers):
     query_result = database['ActionInfo'].find_one({'Id': 'BiosChangePasswordActionInfo'})
     if query_result is None:
         # here if there is no action info to use for the test
-        print('   BiosChangePasswordActionInfo missing from database.  Tests skipped.')
+        print('   BiosChangePasswordActionInfo missing from database. Test skipped.')
         return
 
     mockPasswordName = "AdminPassword"
