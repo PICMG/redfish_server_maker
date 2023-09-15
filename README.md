@@ -71,15 +71,15 @@ Note: if you get errors during the build process that mongodb keys cannot have d
 
 ## Configuration
 Once installation is complete, you may wish to modify the config.json file found in the root of this project repository.  the only values that might need to be chaged are:
-* json_file_path
-* extra_schema_path
-* credentials.repository_destination
-* redfish_creds
-    * mockup_url
-    * mockup_file_name
-    * priviledge_file_name
-    * mockup_dir_name
-By default, the build process will instantiate a server based on DSP2043_2022.2 public-rackmount1
+* json_file_path - set this parameter to the path of a local Redfish mockup folder and the mockup will be used to create the server instance instead of a mockup from the DMTF mockup bundle.
+* extra_schema_path - If you have created custom schema, set this path to the location of the custom schema.  For this parameter to work properly, the schema path must have .yaml files for each of your new schema as well as a openapi.yaml file for all the Redfish objects including your new files.  A best practice is to reference the standard schema on http:/redfish.dmtf.org/schemas/v1, and all the new models using a local file path.
+* credentials.repository_destination - a path to where you want the resulting server instance to be built.
+* credentials.redfish_creds
+    * mockup_url - a path to the DMTF Redfish repository where mockup bundles are stored
+    * mockup_file_name - the name of the mockup bundle to use for the server build
+    * priviledge_file_name - the name of the privilege definitions file on the DMTF Redfish site
+    * mockup_dir_name - the folder name within the mockup bundle to use for the server mockup.
+By default, the build process will instantiate a server based on DSP2043_2022.2 (public-rackmount1)
 
 ## Building A Server Instance
 from the command prompt, execute the following command
@@ -101,8 +101,14 @@ A rudementary server test is provided as an example in the Tests folder of this 
 python3 Python_API_Tests.py
 ```
 
-## Extending Behaviors
+## Completing the server
+Once built, you may need to implement behaviors for the controllers for each of the classes that you use.  Future work for this template will automate error checking and error responses according to the Redfish specification.  More information about the OpenAPI architecture can be found at the OpenAPI website (https://learn.openapis.org/) 
 
-### Actions
-
-### Adding Schema
+## Acknowledgement
+The orginal implementation of this automated framework was developed for PICMG by a student team at Arizona State University.  PICMG is thankful to have worked with ASU on this project and especially thanks the students for their efforts:
+- Manan Soni
+- Sambudha Nath
+- Govind Venugopal
+- Mayank Tewatia
+- Vishnu Preetham Reddy Dasari
+- Sudhanva Hanumanth Rao

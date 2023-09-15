@@ -17,7 +17,6 @@
 
 import os
 
-import bson.json_util
 import wget
 from zipfile import ZipFile
 import shutil
@@ -103,7 +102,7 @@ def initializeMessageRegistryDB(dir_path):
 #The below function inserts mockup data from json files into the database.
 def initializeDB(mockup_dir_path):
     allFiles = []
-    for path, currentDirectory, files in os.walk(mockup_dir_path):
+    for path, currentDirectory, files in os.walk(os.path.expanduser(mockup_dir_path)):
         for file in files:
             if file.endswith('.json'):
                 allFiles.append(os.path.join(path, file))
@@ -175,6 +174,10 @@ def download_and_initialize_redfish_mockups():
         tempMockupDirName = "mockups"        
         redfishCreds = credentials['redfish_creds']
         mockups_dir = destination_dir+'/'+tempMockupDirName
+
+        if os.path.exists(mockups_dir) == True:
+            shutil.rmtree(mockups_dir)
+
         os.makedirs(mockups_dir)
         os. chdir(mockups_dir)
         createPrivilegeDatabase(mockups_dir)
@@ -234,7 +237,10 @@ def downloadModels():
     message_registry_schema = getLatestRegistrySchema(credentials['message_registry_schema_url'], 'MessageRegistry_MessageRegistry')
     generateModels(message_registry_schema,destination_dir)
     schema_url = credentials['schema_url']
-    generateModels(schema_url,destination_dir)
+    if configJson['extra_schema_path'] == "":
+        generateModels(schema_url,destination_dir)
+    else:
+        generateModelsFromLocalRepository(configJson['extra_schema_path'], destination_dir)
     updateRedfishModelswithMongoDBAnnotations(destination_dir)
 
 #The below funciton is a helper function to get latest schema for Action Info, MessageRegistry and PrivilegeRegistry.
@@ -294,7 +300,51 @@ def generateModels(schema_url,destination_dir):
     os.remove("conf.json")
     os.remove(yaml_file_name)
     shutil.rmtree(os.getcwd().replace("\\", "/")+'/spring-boot-codegenerator')
-        
+
+
+def generateModelsFromLocalRepository(schema_path, destination_dir):
+    generator_url = credentials['generator_url']
+    destination_folder = destination_dir + credentials['repo_all_models_path']
+    os.chdir(destination_folder)
+    modelDirName = credentials['repo_all_models_dir_name']
+    destination_folder = destination_folder + '/' + modelDirName
+    yaml_file_name = 'openapi.yaml'
+    jar_file_name = generator_url.split("/")[-1]
+
+    # copy the generator and the yaml file to use
+    wget.download(generator_url)
+    print(os.path.expanduser(schema_path) + '/' + yaml_file_name)
+    print(os.path.expanduser(destination_folder) + '/' + yaml_file_name)
+    src_files = os.listdir(os.path.expanduser(schema_path))
+    for file_name in src_files:
+        full_file_name = os.path.join(os.path.expanduser(schema_path), file_name)
+        if os.path.isfile(full_file_name):
+            shutil.copy(full_file_name, './')
+    json_data = {
+        "basePackage": "com.tutorial.codegen",
+        "configPackage": "com.tutorial.codegen.config",
+        "apiPackage": "com.tutorial.codegen.controllers",
+        "modelPackage": "com.tutorial.codegen.model",
+        "groupId": "com.tutorial",
+        "artifactId": "spring-boot-codegenerator"}
+    with open('conf.json', 'w') as f:
+        json.dump(json_data, f, indent=2)
+
+    os.system("java -jar openapi-generator-cli-4.3.1.jar generate -g spring -i " +
+              yaml_file_name + " -c conf.json -o spring-boot-codegenerator --skip-validate-spec")
+    src = os.getcwd().replace("\\", "/") + \
+          "/spring-boot-codegenerator/src/main/java/com/tutorial/codegen/model"
+    src_files = os.listdir(src)
+    for file_name in src_files:
+        full_file_name = os.path.join(src, file_name)
+        if os.path.isfile(full_file_name):
+            shutil.copy(full_file_name, destination_folder)
+
+    os.remove(jar_file_name)
+    os.remove("conf.json")
+    os.remove(yaml_file_name)
+    shutil.rmtree(os.getcwd().replace("\\", "/") + '/spring-boot-codegenerator')
+
 
 #THe below function updates the Redfish models to remove the version number and add MongoDB annotations to all models.
 #This function also generates Reading and Writing converters for all Redfish Enums.
