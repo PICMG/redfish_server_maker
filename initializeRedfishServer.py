@@ -133,11 +133,11 @@ def createPrivilegeDatabase(mockup_dir_path):
     curr_dir = mockup_dir_path + "/" + tempPrivilegeRegistryDirName
     initializeMessageRegistryDB(curr_dir)
 
-#The below function downloads the redfish mockup data if json_file_path is not specified in config.
-#If json_file_path is specified it reads json files from that path.
+#The below function downloads the redfish mockup data if mockup_file_path is not specified in config.
+#If mockup_file_path is specified it reads json files from that path.
 def download_and_initialize_redfish_mockups():
     destination_dir = os.path.expanduser(credentials["repository_destination"])
-    if configJson["json_file_path"] == "":
+    if configJson["mockup_file_path"] == "":
         tempMockupDirName = "mockups"        
         redfishCreds = credentials['redfish_creds']
         mockups_dir = destination_dir+'/'+tempMockupDirName
@@ -170,7 +170,7 @@ def download_and_initialize_redfish_mockups():
         if os.path.exists(mockups_dir):
             shutil.rmtree(mockups_dir)
     else:
-        initializeDB(configJson["json_file_path"])
+        initializeDB(configJson["mockup_file_path"])
         tempMockupDirName = "mockups"        
         redfishCreds = credentials['redfish_creds']
         mockups_dir = destination_dir+'/'+tempMockupDirName
@@ -237,10 +237,10 @@ def downloadModels():
     message_registry_schema = getLatestRegistrySchema(credentials['message_registry_schema_url'], 'MessageRegistry_MessageRegistry')
     generateModels(message_registry_schema,destination_dir)
     schema_url = credentials['schema_url']
-    if configJson['extra_schema_path'] == "":
-        generateModels(schema_url,destination_dir)
+    if configJson['local_schema_path'] == "":
+        generateModels(schema_url, destination_dir)
     else:
-        generateModelsFromLocalRepository(configJson['extra_schema_path'], destination_dir)
+        generateModelsFromLocalRepository(configJson['local_schema_path']+"/yaml", destination_dir)
     updateRedfishModelswithMongoDBAnnotations(destination_dir)
 
 #The below funciton is a helper function to get latest schema for Action Info, MessageRegistry and PrivilegeRegistry.
@@ -566,6 +566,7 @@ def updateRedfishModelswithMongoDBAnnotations(prev_destination_dir):
         filehandle.writelines(config_data)
     os.chdir(prev_destination_dir)
 
+
 #The below function loads the config file
 def loadConfigJsonFile():
     global configJson
@@ -574,6 +575,7 @@ def loadConfigJsonFile():
         configJson = json.load(f)
     credentials = configJson['credentials']
 
+
 #The below function start the Redfish Server
 def start_Redfish_Server():
     current_dir = os.getcwd()
@@ -581,6 +583,55 @@ def start_Redfish_Server():
     os.chdir(pom_path)
     os.system('mvn clean install')
     os.system('mvn spring-boot:run')
+
+
+#This function generates a cache of schema metadata within the mongodb database
+#The cache lets the server validate post/patch information against the schema
+#prior to making modifications to the data served.
+def generateSchemaCache():
+    # create a temporary folder
+    startdir = os.getcwd()
+    if os.path.exists("./_sb_temp"):
+        shutil.rmtree('./_sb_temp')
+    os.makedirs("./_sb_temp")
+    os.chdir('./_sb_temp')
+
+    # download the schema bundle from the specified URL
+    print('Downloading the Schema Bundle from Redfish Server : ', credentials["schema_bundle_url"])
+    wget.download(credentials["schema_bundle_url"])
+
+    # unzip the schema bundle
+    zip_file_name = credentials["schema_bundle_url"].split('/')[-1]
+    bundle_zip = ZipFile(zip_file_name)
+    bundle_zip.extractall()
+    bundle_zip.close()
+
+    # change folders to the CSDL subfolder of the bundle
+    # this folder holds all the released CSDL schema files for the
+    # current version of the schema bundle
+    os.chdir('./json-schema')
+
+    # copy json schema from local schema repository
+    if not configJson['local_schema_path'] == "":
+        local_path = os.path.expanduser(configJson['local_schema_path'])+'/json'
+        for filename in os.listdir(local_path):
+            if os.path.exists(filename):
+                os.remove(filename)
+            shutil.copy(local_path+"/"+filename, filename)
+
+    # loop for each csdl file in the folder
+    for filename in os.listdir():
+        # load the file into a dictionary
+        with open(filename) as jsonfile:
+            schema_dict = json.load(jsonfile)
+
+            # add schema to cache
+            print('Adding ' + filename + ' to schema cache')
+            executeMongoQuery(schema_dict,'json_schema')
+
+    # remove the temporary folder
+    os.chdir(startdir)
+    shutil.rmtree('./_sb_temp')
 
 
 # The below function is the entry point of this file
@@ -603,6 +654,9 @@ if __name__ == "__main__":
     # use openAPI to convert them to Json code. 
     downloadModels()
 
+    # initialize schema cache
+    generateSchemaCache()
+
     # download the mockup from the specified uri and
     # build the mongoDB database from the mockup.
     download_and_initialize_redfish_mockups()
@@ -610,3 +664,4 @@ if __name__ == "__main__":
     # set the administrator account passsword
     os.system('mongosh RedfishDB --eval "db.ManagerAccount.updateOne({UserName:\'Administrator\'},{\'\$set\':{Password:\'test\'}})"')
     start_Redfish_Server()
+
