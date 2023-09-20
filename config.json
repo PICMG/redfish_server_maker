@@ -1,6 +1,6 @@
 {
-  "json_file_path":"",
-  "extra_schema_path":"",
+  "mockup_file_path":"",
+  "local_schema_path":"",
   "credentials": {
     "repository_destination": "~/temp",
     "redfish_creds": {
@@ -18,6 +18,7 @@
       "mongo_database": "RedfishDB"
     },
     "schema_url": "https://redfish.dmtf.org/schemas/v1/openapi.yaml",
+    "schema_bundle_url":"https://www.dmtf.org/sites/default/files/standards/documents/DSP8010_2022.3.zip",
     "action_info_schema_url":"https://redfish.dmtf.org/schemas/v1/ActionInfo.yaml",
     "message_registry_schema_url":"https://redfish.dmtf.org/schemas/v1/MessageRegistry.yaml",
     "privilege_registry_schema_url":"https://redfish.dmtf.org/schemas/v1/PrivilegeRegistry.yaml",
