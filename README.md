@@ -65,14 +65,14 @@ sudo apt install mongodb-clients
 ### Installing Python Library Modules
 Depending on your python installation, you may need to install wget, pymongo and yaml libraries.  you can do this by executing the following command-line prompt:
 ```
-sudo apt-get install python3-wget python3-pymongo python3-yaml
+sudo apt-get install python3-wget python3-pymongo python3-yaml xmltodict
 ```
 Note: if you get errors during the build process that mongodb keys cannot have dots in them (e.g., "@odata.id') then you need to update the version of pymongo that you are using. 
 
 ## Configuration
 Once installation is complete, you may wish to modify the config.json file found in the root of this project repository.  the only values that might need to be chaged are:
-* json_file_path - set this parameter to the path of a local Redfish mockup folder and the mockup will be used to create the server instance instead of a mockup from the DMTF mockup bundle.
-* extra_schema_path - If you have created custom schema, set this path to the location of the custom schema.  For this parameter to work properly, the schema path must have .yaml files for each of your new schema as well as a openapi.yaml file for all the Redfish objects including your new files.  A best practice is to reference the standard schema on http:/redfish.dmtf.org/schemas/v1, and all the new models using a local file path.
+* mockup_file_path - set this parameter to the path of a local Redfish mockup folder and the mockup will be used to create the server instance instead of a mockup from the DMTF mockup bundle.
+* local_schema_path - If you have created custom schema, set this path to the location of the custom schema folder.  For this parameter to work properly, the schema path must have two subfolders: yaml, and json.  The yaml path should hold .yaml files for each of your new schema as well as a openapi.yaml file for all the Redfish objects including your new files.  A best practice is to reference the standard schema on http:/redfish.dmtf.org/schemas/v1, and all the new models using a local file path.  The json path should include the json equivalent of the yaml files.
 * credentials.repository_destination - a path to where you want the resulting server instance to be built.
 * credentials.redfish_creds
     * mockup_url - a path to the DMTF Redfish repository where mockup bundles are stored
