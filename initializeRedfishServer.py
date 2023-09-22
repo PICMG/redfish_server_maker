@@ -249,7 +249,10 @@ def getLatestRegistrySchema(schema_url, schema_name):
     wget.download(schema_url)
     with open(yaml_file_name, 'r') as file:
         yaml_data = yaml.safe_load(file)
-    latest_version = yaml_data['components']['schemas'][schema_name]['anyOf'][-1]['$ref'].split("#")[0]
+    if 'anyOf' in yaml_data['components']['schemas'][schema_name]:
+        latest_version = yaml_data['components']['schemas'][schema_name]['anyOf'][-1]['$ref'].split("#")[0]
+    else:
+        latest_version = yaml_data['components']['schemas'][schema_name]['$ref'].split("#")[0]
     os.remove(yaml_file_name)
     return latest_version
 
@@ -624,10 +627,11 @@ def generateSchemaCache():
         # load the file into a dictionary
         with open(filename) as jsonfile:
             schema_dict = json.load(jsonfile)
+            entry = {'source': os.path.splitext(filename)[0], 'schema': schema_dict}
 
             # add schema to cache
             print('Adding ' + filename + ' to schema cache')
-            executeMongoQuery(schema_dict,'json_schema')
+            executeMongoQuery(entry,'json_schema')
 
     # remove the temporary folder
     os.chdir(startdir)

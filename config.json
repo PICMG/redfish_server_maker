@@ -1,6 +1,6 @@
 {
-  "mockup_file_path":"",
-  "local_schema_path":"",
+  "mockup_file_path":"~/git/IIOT_2_mockup/redfish/v1",
+  "local_schema_path":"~/git/IIOT_2_schema",
   "credentials": {
     "repository_destination": "~/temp",
     "redfish_creds": {
