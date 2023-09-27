@@ -117,10 +117,57 @@ def sessionService():
 #The below request is used to test root service API
 def rootService():
     print('Testing Root Service....')
-    url = configJson['domain'] + configJson['api']['root_service']
+
+    # test for a response at /redfish
+    url = configJson['domain'] + '/redfish'
+    r = requests.get(url)
+    print("   Testing version at /redfish ", end='')
+    assert r.status_code == 200
+    assert r.text.replace(' ','') == '{"v1":"/redfish/v1/"}'
+    assert r.url == url
+    print("- PASSED")
+
+    # test for a response at /redfish
+    url = configJson['domain'] + '/redfish/'
+    r = requests.get(url)
+    print("   Testing for redirect of /redfish/ ", end='')
+    assert r.status_code == 200
+    assert r.text.replace(' ','') == '{"v1":"/redfish/v1/"}'
+    assert r.url == configJson['domain'] + '/redfish'
+    print("- PASSED")
+
+    # test for a response at /redfish/v1/$metadata
+    url = configJson['domain'] + '/redfish/v1/$metadata'
+    r = requests.get(url)
+    print("   Testing GET of /redfish/v1/$metadata ", end='')
+    assert r.status_code == 200
+    assert r.url == url
+    print("- PASSED")
+
+    # test for a response at /redfish/v1/odata
+    url = configJson['domain'] + '/redfish/v1/odata'
+    r = requests.get(url)
+    print("   Testing GET of /redfish/v1/odata ", end='')
+    assert r.status_code == 200
+    assert r.url == url
+    print("- PASSED")
+
+    # test for read of root service
+    url = configJson['domain'] + "/redfish/v1/"
     expected_OdataId = configJson['api']['root_service']
     expected_respHeader_array = []
+    print("   Testing GET of /redfish/v1/ ", end='')
     do_get_request(url, 200, expected_OdataId, expected_respHeader_array, None)
+    print("- PASSED")
+
+    # test for redirect from /redfish/v1
+    url = configJson['domain'] + '/redfish/v1'
+    r = requests.get(url)
+    print("   Testing for redirect from /redfish/v1 ", end='')
+    assert r.status_code == 200
+    assert r.url == configJson['domain'] + '/redfish/v1/'
+    print("- PASSED")
+
 
 #The below request is used to test account service get API
 def accountService1(my_headers):

@@ -116,6 +116,32 @@ def initializeDB(mockup_dir_path):
             table_name = data['@odata.type'].split(".")[-1]
             executeMongoQuery(data, table_name)
 
+#The below function inserts odata file data into the database.
+def createOdataFileEntry(mockup_dir_path):
+    allFiles = []
+
+    if not os.path.exists(os.path.expanduser(mockup_dir_path+'/odata/index.json')):
+        return
+
+    file = os.path.expanduser(mockup_dir_path+'/odata/index.json')
+    with open(file, 'r') as f:
+        data = f.read()
+    executeMongoQuery({"data": data}, 'odata_file')
+
+
+#The below function inserts metadata file data into the database.
+def createMetadataFileEntry(mockup_dir_path):
+    allFiles = []
+
+    if not os.path.exists(os.path.expanduser(mockup_dir_path+'/$metadata/index.xml')):
+        return
+
+    file = os.path.expanduser(mockup_dir_path+'/$metadata/index.xml')
+    with open(file, 'r') as f:
+        data = f.read()
+    executeMongoQuery({"data": data}, 'metadata_file')
+
+
 #the below function is used to insert Privilege Registry data into the database.
 def createPrivilegeDatabase(mockup_dir_path):
     tempPrivilegeRegistryDirName = 'privilegeRegistry'
@@ -161,6 +187,8 @@ def download_and_initialize_redfish_mockups():
         mockup_zip.close()
 
         initializeDB(mockup_dir_path)
+        createOdataFileEntry(mockup_dir_path)
+        createMetadataFileEntry(mockup_dir_path)
 
         # PrivilegeRigistry
         createPrivilegeDatabase(mockups_dir)
@@ -171,7 +199,9 @@ def download_and_initialize_redfish_mockups():
             shutil.rmtree(mockups_dir)
     else:
         initializeDB(configJson["mockup_file_path"])
-        tempMockupDirName = "mockups"        
+        createOdataFileEntry(configJson["mockup_file_path"])
+        createMetadataFileEntry(configJson["mockup_file_path"])
+        tempMockupDirName = "mockups"
         redfishCreds = credentials['redfish_creds']
         mockups_dir = destination_dir+'/'+tempMockupDirName
 
@@ -179,14 +209,17 @@ def download_and_initialize_redfish_mockups():
             shutil.rmtree(mockups_dir)
 
         os.makedirs(mockups_dir)
-        os. chdir(mockups_dir)
+        os.chdir(mockups_dir)
+
         createPrivilegeDatabase(mockups_dir)
         os.chdir(destination_dir)
+
         # remove mockup dir
         if os.path.exists(mockups_dir):
             shutil.rmtree(mockups_dir)    
 
     os.chdir(destination_dir)
+
 
 #The below function clones the github repository.
 def cloneRepo():
