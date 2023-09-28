@@ -48,6 +48,9 @@ def executeMongoQuery(data, table):
     client = pymongo.MongoClient(mongoClientUrl)
     database = client[mongoDatabase]
     collection = database[table]
+    if ('@odata.id' in data):
+        # create an easily searchable odata.id field
+        data['_odata_id'] = data['@odata.id']
     result = collection.insert_one(data)
     print('Query Executed for : ', table, result)
 
