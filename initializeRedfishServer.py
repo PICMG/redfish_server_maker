@@ -16,6 +16,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import os
+import re
 
 import wget
 from zipfile import ZipFile
@@ -167,7 +168,7 @@ def createPrivilegeDatabase(mockup_dir_path):
 def download_and_initialize_redfish_mockups():
     destination_dir = os.path.expanduser(credentials["repository_destination"])
     if configJson["mockup_file_path"] == "":
-        tempMockupDirName = "mockups"        
+        tempMockupDirName = "mockups"
         redfishCreds = credentials['redfish_creds']
         mockups_dir = destination_dir+'/'+tempMockupDirName
         file_name = redfishCreds['mockup_file_name']
@@ -219,7 +220,7 @@ def download_and_initialize_redfish_mockups():
 
         # remove mockup dir
         if os.path.exists(mockups_dir):
-            shutil.rmtree(mockups_dir)    
+            shutil.rmtree(mockups_dir)
 
     os.chdir(destination_dir)
 
@@ -334,7 +335,7 @@ def generateModels(schema_url,destination_dir):
         full_file_name = os.path.join(src, file_name)
         if os.path.isfile(full_file_name):
             shutil.copy(full_file_name, destination_folder)
-    
+
     os.remove(jar_file_name)
     os.remove("conf.json")
     os.remove(yaml_file_name)
@@ -577,7 +578,7 @@ def updateRedfishModelswithMongoDBAnnotations(prev_destination_dir):
             if data[i].startswith("public enum"):
                 table_name = data[i].split(" ")[2]
                 enums_list.append(table_name)
-                break                
+                break
             i+=1
     config_dir = prev_destination_dir + "/" + credentials['repo_config_path']
     converters_dir = config_dir + "/converters"
@@ -627,7 +628,7 @@ def start_Redfish_Server():
 #This function generates a cache of schema metadata within the mongodb database
 #The cache lets the server validate post/patch information against the schema
 #prior to making modifications to the data served.
-def generateSchemaCache():
+def generateSchemaCacheAndSecurityTable():
     # create a temporary folder
     startdir = os.getcwd()
     if os.path.exists("./_sb_temp"):
@@ -645,8 +646,8 @@ def generateSchemaCache():
     bundle_zip.extractall()
     bundle_zip.close()
 
-    # change folders to the CSDL subfolder of the bundle
-    # this folder holds all the released CSDL schema files for the
+    # change folders to the json-schema subfolder of the bundle
+    # this folder holds all the released json schema files for the
     # current version of the schema bundle
     os.chdir('./json-schema')
 
@@ -658,21 +659,52 @@ def generateSchemaCache():
                 os.remove(filename)
             shutil.copy(local_path+"/"+filename, filename)
 
-    # loop for each csdl file in the folder
+    # loop for each json file in the folder
+    oslistdir = os.listdir()
     for filename in os.listdir():
         # load the file into a dictionary
         with open(filename) as jsonfile:
             schema_dict = json.load(jsonfile)
-            entry = {'source': os.path.splitext(filename)[0], 'schema': schema_dict}
+            objname = filename.split('.')[0]
+            entry = {'source': objname, 'schema': schema_dict}
 
             # add schema to cache
             print('Adding ' + filename + ' to schema cache')
-            executeMongoQuery(entry,'json_schema')
+            executeMongoQuery(entry, 'json_schema')
+
+            if "definitions" in schema_dict and objname in schema_dict['definitions']:
+                createSecurityTableEntry(entry['source'], schema_dict['definitions'][objname])
 
     # remove the temporary folder
     os.chdir(startdir)
     shutil.rmtree('./_sb_temp')
 
+
+def createSecurityTableEntry(name, jsonObj):
+    if 'uris' not in jsonObj:
+        return
+
+    mongoClientUrl, mongoDatabase = getMongoCreds()
+    mongoclient = pymongo.MongoClient(mongoClientUrl)
+    database = mongoclient[mongoDatabase]
+    collection = database['privileges_table']
+
+    # find the security permissions for the object
+    privilegesRegistry = database['PrivilegeRegistry'].find_one({})
+    mappings = privilegesRegistry['Mappings']
+    for mapping in mappings:
+        if mapping['Entity'] == name:
+            # search for any uris associated with this object
+            uriCount = 0
+            for uri in jsonObj['uris']:
+                # replace any wildcard fields with regular expression syntax
+                # check to see if the uri exists in the security table
+                reguri = re.sub('{[^}]+}','[^\/]+', uri)
+
+                result = {'uri': reguri, 'OperationMap': mapping['OperationMap']}
+
+                # overwrite any previous operation map
+                collection.insert_one(result)
 
 # The below function is the entry point of this file
 if __name__ == "__main__":
@@ -694,12 +726,12 @@ if __name__ == "__main__":
     # use openAPI to convert them to Json code. 
     downloadModels()
 
-    # initialize schema cache
-    generateSchemaCache()
-
     # download the mockup from the specified uri and
     # build the mongoDB database from the mockup.
     download_and_initialize_redfish_mockups()
+
+    # initialize schema cache
+    generateSchemaCacheAndSecurityTable()
 
     # set the administrator account passsword
     os.system('mongosh RedfishDB --eval "db.ManagerAccount.updateOne({UserName:\'Administrator\'},{\'\$set\':{Password:\'test\'}})"')

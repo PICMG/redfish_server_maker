@@ -171,7 +171,7 @@ def rootService():
 
 #The below request is used to test account service get API
 def accountService1(my_headers):
-    url = configJson['domain'] + configJson['api']['account_service'] + '/'
+    url = configJson['domain'] + configJson['api']['account_service']
     expected_OdataId = configJson['api']['account_service']
     expected_respHeader_array = []
     do_get_request(url, 200, expected_OdataId,
@@ -180,7 +180,7 @@ def accountService1(my_headers):
 #The below request is used to test account service get API
 def accountService2(my_headers):
     url = configJson['domain'] + \
-        configJson['api']['account_service'] + '/Account'
+        configJson['api']['account_service'] + '/Accounts'
     expected_OdataId = configJson['api']['account_service'] + '/Accounts'
     expected_respHeader_array = []
     do_get_request(url, 200, expected_OdataId,
@@ -201,7 +201,7 @@ def accountService3(my_headers):
     }
 
     url = configJson['domain'] + \
-        configJson['api']['account_service'] + '/Account'
+        configJson['api']['account_service'] + '/Accounts'
     expected_OdataId = configJson['api']['account_service'] + '/Accounts'
     expected_respHeader_array = []
     r = do_post_request(url, 201, reqBody, expected_OdataId,
@@ -213,7 +213,7 @@ def accountService3(my_headers):
     mockAccount_Id = respBody['Id']
 
     url = configJson['domain'] + \
-        configJson['api']['account_service'] + '/Account/' + mockAccount_Id
+        configJson['api']['account_service'] + '/Accounts/' + mockAccount_Id
     expected_OdataId = configJson['api']['account_service'] + '/Accounts'
     expected_respHeader_array = []
     r = do_get_request(url, 200, expected_OdataId,
@@ -232,7 +232,7 @@ def accountService3(my_headers):
     }
 
     url = configJson['domain'] + \
-        configJson['api']['account_service'] + '/Account'
+        configJson['api']['account_service'] + '/Accounts'
     expected_respHeader_array = []
     r = do_patch_request(url, 200, reqBody, None,
                          expected_respHeader_array, my_headers)
@@ -241,7 +241,7 @@ def accountService3(my_headers):
         'UserName'] == mockAccount_Username and respBody['RoleId'] == mockAccount_RoleId
 
     url = url = configJson['domain'] + \
-        configJson['api']['account_service'] + '/Account/' + mockAccount_Id
+        configJson['api']['account_service'] + '/Accounts/' + mockAccount_Id
     expected_OdataId = configJson['api']['account_service'] + '/Accounts'
     expected_respHeader_array = []
     r = do_get_request(url, 200, expected_OdataId,
@@ -251,7 +251,7 @@ def accountService3(my_headers):
         'UserName'] == mockAccount_Username and respBody['RoleId'] == mockAccount_RoleId
 
     url = configJson['domain'] + \
-        configJson['api']['account_service'] + '/Account'
+        configJson['api']['account_service'] + '/Accounts'
     expected_respHeader_array = []
     r = do_delete_request(
         url, 200, reqBody, expected_respHeader_array, my_headers)
@@ -287,7 +287,7 @@ def taskService2(my_headers):
         "TaskStatus": mockTaskStatus
     }
 
-    url = configJson['domain'] + configJson['api']['task_service'] + '/Task'
+    url = configJson['domain'] + configJson['api']['task_service'] + '/Tasks'
     expected_respHeader_array = ['Location']
     r = do_post_request(url, 201, reqBody, None,
                         expected_respHeader_array, my_headers)
@@ -298,7 +298,7 @@ def taskService2(my_headers):
     mockAccount_Id = respBody['Id']
 
     url = configJson['domain'] + \
-        configJson['api']['task_service'] + '/Task/' + mockAccount_Id
+        configJson['api']['task_service'] + '/Tasks/' + mockAccount_Id
     expected_OdataId = expected_OdataId = configJson['api']['task_service'] + \
         '/Tasks/' + mockAccount_Id
     expected_respHeader_array = []
@@ -308,7 +308,7 @@ def taskService2(my_headers):
     assert respBody['Name'] == mockTaskName and respBody['TaskState'] == mockTaskState and respBody[
         'TaskStatus'] == mockTaskStatus
 
-    url = configJson['domain'] + configJson['api']['task_service'] + '/Task'
+    url = configJson['domain'] + configJson['api']['task_service'] + '/Tasks'
     expected_respHeader_array = []
     r = do_delete_request(
         url, 200, reqBody, expected_respHeader_array, my_headers)
@@ -317,7 +317,7 @@ def taskService2(my_headers):
         'TaskStatus'] == mockTaskStatus
 
     url = configJson['domain'] + \
-        configJson['api']['task_service'] + '/Task/' + mockAccount_Id
+        configJson['api']['task_service'] + '/Tasks/' + mockAccount_Id
     expected_respHeader_array = []
     do_get_request(url, 204, None, expected_respHeader_array, my_headers)
 
