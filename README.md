@@ -73,13 +73,25 @@ Note: if you get errors during the build process that mongodb keys cannot have d
 Once installation is complete, you may wish to modify the config.json file found in the root of this project repository.  the only values that might need to be chaged are:
 * mockup_file_path - set this parameter to the path of a local Redfish mockup folder and the mockup will be used to create the server instance instead of a mockup from the DMTF mockup bundle.
 * local_schema_path - If you have created custom schema, set this path to the location of the custom schema folder.  For this parameter to work properly, the schema path must have two subfolders: yaml, and json.  The yaml path should hold .yaml files for each of your new schema as well as a openapi.yaml file for all the Redfish objects including your new files.  A best practice is to reference the standard schema on http:/redfish.dmtf.org/schemas/v1, and all the new models using a local file path.  The json path should include the json equivalent of the yaml files.
-* credentials.repository_destination - a path to where you want the resulting server instance to be built.
+* credentials.repository_destination - a path to where you want the resulting server instance to be built. 
+* credentials.https_port: The port the server should use for https requests. 
+* credentials.http_port: The port the server should use for http requests.
+* credentials.path_to_https_keystore: The path and filename of the certificate that should be used for HTTPS communications.
+* credentials.key_alias: The alias name of the key to use within the specified certificate file.
+* credentials.key_store_password: The keystore password for the certificate that should be used for HTTPS communications.
+* credentials.key_password: The key password for the certificate that should be used for HTTPS communications.
 * credentials.redfish_creds
     * mockup_url - a path to the DMTF Redfish repository where mockup bundles are stored
     * mockup_file_name - the name of the mockup bundle to use for the server build
     * priviledge_file_name - the name of the privilege definitions file on the DMTF Redfish site
     * mockup_dir_name - the folder name within the mockup bundle to use for the server mockup.
 By default, the build process will instantiate a server based on DSP2043_2022.2 (public-rackmount1)
+
+A note on the certificate file for https communications: The expected file format is pkcs12.  You can create a self-signed certificate for development by using the java keytool utility with the following syntax:
+```
+keytool -genkeypair -alias <key_alias> -keyalg RSA -keysize 4096 -storetype PKCS12 -keystore <filename>.p12 -validity 3650 -storepass <key_store_password>
+```
+by default, the key password will be the same as the keystore password.
 
 ## Building A Server Instance
 from the command prompt, execute the following command

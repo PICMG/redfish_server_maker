@@ -706,6 +706,26 @@ def createSecurityTableEntry(name, jsonObj):
                 # overwrite any previous operation map
                 collection.insert_one(result)
 
+
+# this function makes the application-server.yml file that is used to configure the
+# spring-boot server http and https ports as well as provide information about the certificate
+# file for https communications.
+def makeServerYmlFile():
+    yml_filename = os.path.expanduser(credentials["repository_destination"])+"/redfish_server_template/src/main/resources/application-server.yml"
+    with open(yml_filename, 'w') as filehandle:
+        filehandle.writelines(
+            'server:\n' +
+            '  port: '+str(credentials['https_port'])+'\n' +
+            '  http_port: ' + str(credentials['http_port']) + '\n' +
+            '  ssl:\n' +
+            '     key-store: "' + credentials['path_to_https_keystore'] + '"\n' +
+            '     key-store-password: "' + credentials['key_store_password'] + '"\n' +
+            '     key-store-type: "pkcs12"\n' +
+            '     key-alias: "' + credentials['key_alias'] + '"\n')
+        if credentials['key_password'] != "":
+            filehandle.writelines('     key-password: "' + credentials['key_password'] + '"\n')
+
+
 # The below function is the entry point of this file
 if __name__ == "__main__":
 
@@ -713,11 +733,12 @@ if __name__ == "__main__":
     loadConfigJsonFile()
 
     # check to see if the repository destination exists
-    if not os.path.exists(credentials["repository_destination"]):
-        os.makedirs(credentials["repository_destination"])
+    if not os.path.exists(os.path.expanduser(credentials["repository_destination"])):
+        os.makedirs(os.path.expanduser(credentials["repository_destination"]))
 
     # clone the clean framework from the PICMG repository
     cloneRepo()
+    makeServerYmlFile()
 
     # drop the redfish database if it exists
     os.system('mongosh RedfishDB --eval "printjson(db.dropDatabase())"')

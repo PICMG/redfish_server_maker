@@ -2,7 +2,13 @@
   "mockup_file_path":"~/git/IIOT_2_mockup/redfish/v1",
   "local_schema_path":"~/git/IIOT_2_schema",
   "credentials": {
-    "repository_destination": "~/temp",
+    "repository_destination": "~/temp2",
+    "https_port": 8443,
+    "http_port": 8080,
+    "key_alias": "redfish_server",
+    "path_to_https_keystore": "${user.home}/keys/redfish.p12",
+    "key_store_password": "store_password",
+    "key_password": "store_password",
     "redfish_creds": {
       "mockup_url": "https://www.dmtf.org/sites/default/files/standards/documents/",
       "mockup_file_name": "DSP2043_2022.2",

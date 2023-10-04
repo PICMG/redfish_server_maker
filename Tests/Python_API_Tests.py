@@ -19,7 +19,6 @@ import json
 import pymongo
 import collections
 
-
 configJson = {}
 
 #The below function loads the config file.
@@ -56,7 +55,7 @@ def assertResponse(response, expectedResponseCode, expected_OdataId, expected_re
         # expected_respHeader_array - list
         # my_headers - dict
 def do_get_request(url, expectedResponseCode, expected_OdataId, expected_respHeader_array, my_headers):
-    r = requests.get(url, headers=my_headers)
+    r = requests.get(url, headers=my_headers, verify=False)
     assertResponse(r, expectedResponseCode, expected_OdataId,
                    expected_respHeader_array)
     return r
@@ -71,7 +70,7 @@ def do_get_request(url, expectedResponseCode, expected_OdataId, expected_respHea
 def do_post_request(url, expectedResponseCode, reqBody, expected_OdataId, expected_respHeader_array, my_headers):
     if my_headers == None:
         my_headers = {"Content-Type": "application/json"}
-    r = requests.post(url, json=reqBody, headers=my_headers)
+    r = requests.post(url, json=reqBody, headers=my_headers, verify=False)
     assertResponse(r, expectedResponseCode, expected_OdataId,
                    expected_respHeader_array)
     return r
@@ -84,7 +83,7 @@ def do_post_request(url, expectedResponseCode, reqBody, expected_OdataId, expect
         # expected_respHeader_array - list
         # my_headers - dict
 def do_patch_request(url, expectedResponseCode, reqBody, expected_OdataId, expected_respHeader_array, my_headers):
-    r = requests.patch(url, json=reqBody, headers=my_headers)
+    r = requests.patch(url, json=reqBody, headers=my_headers, verify=False)
     assertResponse(r, expectedResponseCode, expected_OdataId,
                    expected_respHeader_array)
     return r
@@ -96,7 +95,7 @@ def do_patch_request(url, expectedResponseCode, reqBody, expected_OdataId, expec
         # expected_respHeader_array - list
         # my_headers - dict
 def do_delete_request(url, expectedResponseCode, reqBody, expected_respHeader_array, my_headers):
-    r = requests.delete(url, json=reqBody, headers=my_headers)
+    r = requests.delete(url, json=reqBody, headers=my_headers, verify=False)
     assertResponse(r, expectedResponseCode, None,
                    expected_respHeader_array)
     return r
@@ -120,7 +119,7 @@ def rootService():
 
     # test for a response at /redfish
     url = configJson['domain'] + '/redfish'
-    r = requests.get(url)
+    r = requests.get(url, verify=False)
     print("   Testing version at /redfish ", end='')
     assert r.status_code == 200
     assert r.text.replace(' ','') == '{"v1":"/redfish/v1/"}'
@@ -129,7 +128,7 @@ def rootService():
 
     # test for a response at /redfish
     url = configJson['domain'] + '/redfish/'
-    r = requests.get(url)
+    r = requests.get(url, verify=False)
     print("   Testing for redirect of /redfish/ ", end='')
     assert r.status_code == 200
     assert r.text.replace(' ','') == '{"v1":"/redfish/v1/"}'
@@ -138,7 +137,7 @@ def rootService():
 
     # test for a response at /redfish/v1/$metadata
     url = configJson['domain'] + '/redfish/v1/$metadata'
-    r = requests.get(url)
+    r = requests.get(url, verify=False)
     print("   Testing GET of /redfish/v1/$metadata ", end='')
     assert r.status_code == 200
     assert r.url == url
@@ -146,7 +145,7 @@ def rootService():
 
     # test for a response at /redfish/v1/odata
     url = configJson['domain'] + '/redfish/v1/odata'
-    r = requests.get(url)
+    r = requests.get(url, verify=False)
     print("   Testing GET of /redfish/v1/odata ", end='')
     assert r.status_code == 200
     assert r.url == url
@@ -162,7 +161,7 @@ def rootService():
 
     # test for redirect from /redfish/v1
     url = configJson['domain'] + '/redfish/v1'
-    r = requests.get(url)
+    r = requests.get(url, verify=False)
     print("   Testing for redirect from /redfish/v1 ", end='')
     assert r.status_code == 200
     assert r.url == configJson['domain'] + '/redfish/v1/'
@@ -438,6 +437,11 @@ def actions(my_headers):
 
 
 if __name__ == '__main__':
+    # disable warnings from self-signed security certificate
+    from urllib3.exceptions import InsecureRequestWarning
+    from urllib3 import disable_warnings
+    disable_warnings(InsecureRequestWarning)
+
     loadConfigJsonFile()
     rootService()
     authHeader = sessionService()

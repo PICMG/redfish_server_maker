@@ -1,5 +1,5 @@
 {
-  "domain": "http://localhost:8080",
+  "domain": "https://localhost:8443",
   "api": {
     "root_service": "/redfish/v1/",
     "session_service": "/redfish/v1/SessionService",
