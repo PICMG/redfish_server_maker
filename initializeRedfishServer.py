@@ -665,15 +665,16 @@ def generateSchemaCacheAndSecurityTable():
         # load the file into a dictionary
         with open(filename) as jsonfile:
             schema_dict = json.load(jsonfile)
-            objname = filename.split('.')[0]
-            entry = {'source': objname, 'schema': schema_dict}
+            objname = filename
+            entry = {'source': objname, 'schema': json.dumps(schema_dict)}
 
             # add schema to cache
             print('Adding ' + filename + ' to schema cache')
             executeMongoQuery(entry, 'json_schema')
 
-            if "definitions" in schema_dict and objname in schema_dict['definitions']:
-                createSecurityTableEntry(entry['source'], schema_dict['definitions'][objname])
+            obj_base_name = objname.split('.')[0];
+            if "definitions" in schema_dict and obj_base_name in schema_dict['definitions']:
+                createSecurityTableEntry(obj_base_name, schema_dict['definitions'][obj_base_name])
 
     # remove the temporary folder
     os.chdir(startdir)
