@@ -19,7 +19,6 @@ import json
 import pymongo
 import collections
 
-
 configJson = {}
 
 #The below function loads the config file.
@@ -36,6 +35,7 @@ def loadConfigJsonFile():
         # expected_OdataId - str
         # expected_respHeader_array - list
 def assertResponse(response, expectedResponseCode, expected_OdataId, expected_respHeader_array):
+    print(response.request.method," ", response.url, " ", response.status_code, " ", json.loads(response.content))
     assert response.status_code == expectedResponseCode
     if expectedResponseCode != 204:
         respBody = json.loads(response.content)
@@ -56,7 +56,7 @@ def assertResponse(response, expectedResponseCode, expected_OdataId, expected_re
         # expected_respHeader_array - list
         # my_headers - dict
 def do_get_request(url, expectedResponseCode, expected_OdataId, expected_respHeader_array, my_headers):
-    r = requests.get(url, headers=my_headers)
+    r = requests.get(url, headers=my_headers, verify=False)
     assertResponse(r, expectedResponseCode, expected_OdataId,
                    expected_respHeader_array)
     return r
@@ -71,7 +71,7 @@ def do_get_request(url, expectedResponseCode, expected_OdataId, expected_respHea
 def do_post_request(url, expectedResponseCode, reqBody, expected_OdataId, expected_respHeader_array, my_headers):
     if my_headers == None:
         my_headers = {"Content-Type": "application/json"}
-    r = requests.post(url, json=reqBody, headers=my_headers)
+    r = requests.post(url, json=reqBody, headers=my_headers, verify=False)
     assertResponse(r, expectedResponseCode, expected_OdataId,
                    expected_respHeader_array)
     return r
@@ -84,7 +84,7 @@ def do_post_request(url, expectedResponseCode, reqBody, expected_OdataId, expect
         # expected_respHeader_array - list
         # my_headers - dict
 def do_patch_request(url, expectedResponseCode, reqBody, expected_OdataId, expected_respHeader_array, my_headers):
-    r = requests.patch(url, json=reqBody, headers=my_headers)
+    r = requests.patch(url, json=reqBody, headers=my_headers, verify=False)
     assertResponse(r, expectedResponseCode, expected_OdataId,
                    expected_respHeader_array)
     return r
@@ -96,7 +96,7 @@ def do_patch_request(url, expectedResponseCode, reqBody, expected_OdataId, expec
         # expected_respHeader_array - list
         # my_headers - dict
 def do_delete_request(url, expectedResponseCode, reqBody, expected_respHeader_array, my_headers):
-    r = requests.delete(url, json=reqBody, headers=my_headers)
+    r = requests.delete(url, json=reqBody, headers=my_headers, verify=False)
     assertResponse(r, expectedResponseCode, None,
                    expected_respHeader_array)
     return r
@@ -120,7 +120,7 @@ def rootService():
 
     # test for a response at /redfish
     url = configJson['domain'] + '/redfish'
-    r = requests.get(url)
+    r = requests.get(url, verify=False)
     print("   Testing version at /redfish ", end='')
     assert r.status_code == 200
     assert r.text.replace(' ','') == '{"v1":"/redfish/v1/"}'
@@ -129,7 +129,7 @@ def rootService():
 
     # test for a response at /redfish
     url = configJson['domain'] + '/redfish/'
-    r = requests.get(url)
+    r = requests.get(url, verify=False)
     print("   Testing for redirect of /redfish/ ", end='')
     assert r.status_code == 200
     assert r.text.replace(' ','') == '{"v1":"/redfish/v1/"}'
@@ -138,7 +138,7 @@ def rootService():
 
     # test for a response at /redfish/v1/$metadata
     url = configJson['domain'] + '/redfish/v1/$metadata'
-    r = requests.get(url)
+    r = requests.get(url, verify=False)
     print("   Testing GET of /redfish/v1/$metadata ", end='')
     assert r.status_code == 200
     assert r.url == url
@@ -146,7 +146,7 @@ def rootService():
 
     # test for a response at /redfish/v1/odata
     url = configJson['domain'] + '/redfish/v1/odata'
-    r = requests.get(url)
+    r = requests.get(url, verify=False)
     print("   Testing GET of /redfish/v1/odata ", end='')
     assert r.status_code == 200
     assert r.url == url
@@ -162,7 +162,7 @@ def rootService():
 
     # test for redirect from /redfish/v1
     url = configJson['domain'] + '/redfish/v1'
-    r = requests.get(url)
+    r = requests.get(url, verify=False)
     print("   Testing for redirect from /redfish/v1 ", end='')
     assert r.status_code == 200
     assert r.url == configJson['domain'] + '/redfish/v1/'
@@ -192,7 +192,7 @@ def accountService3(my_headers):
     mockAccount_Name = 'MockAccount_Name'
     mockAccount_Description = 'MockAccount_Description'
     mockAccount_Username = 'MockAccount_UserName'
-    mockAccount_RoleId = 'Administrator 10'
+    mockAccount_RoleId = 'Administrator'
     reqBody = {
         "Name": mockAccount_Name,
         "Description": mockAccount_Description,
@@ -200,6 +200,7 @@ def accountService3(my_headers):
         "RoleId": mockAccount_RoleId
     }
 
+    # attempt to create a new account
     url = configJson['domain'] + \
         configJson['api']['account_service'] + '/Accounts'
     expected_OdataId = configJson['api']['account_service'] + '/Accounts'
@@ -210,6 +211,7 @@ def accountService3(my_headers):
     assert respBody['Name'] == mockAccount_Name and respBody['Description'] == mockAccount_Description and respBody[
         'UserName'] == mockAccount_Username and respBody['RoleId'] == mockAccount_RoleId
 
+    # try to read back the new account
     mockAccount_Id = respBody['Id']
 
     url = configJson['domain'] + \
@@ -222,8 +224,8 @@ def accountService3(my_headers):
     assert respBody['Name'] == mockAccount_Name and respBody['Description'] == mockAccount_Description and respBody[
         'UserName'] == mockAccount_Username and respBody['RoleId'] == mockAccount_RoleId
 
-    mockAccount_Name = mockAccount_Name + '_New'
-    mockAccount_Description = mockAccount_Description + '_New'
+    # try to patch the new account
+    mockAccount_Username = mockAccount_Username + '_New'
     reqBody = {
         "Name": mockAccount_Name,
         "Description": mockAccount_Description,
@@ -231,17 +233,20 @@ def accountService3(my_headers):
         "RoleId": mockAccount_RoleId
     }
 
-    url = configJson['domain'] + \
-        configJson['api']['account_service'] + '/Accounts'
+    url = url = configJson['domain'] + \
+                configJson['api']['account_service'] + '/Accounts/' + mockAccount_Id
     expected_respHeader_array = []
+
     r = do_patch_request(url, 200, reqBody, None,
                          expected_respHeader_array, my_headers)
     respBody = json.loads(r.content)
     assert respBody['Name'] == mockAccount_Name and respBody['Description'] == mockAccount_Description and respBody[
         'UserName'] == mockAccount_Username and respBody['RoleId'] == mockAccount_RoleId
 
+    # verify the second patch took place account was created
     url = url = configJson['domain'] + \
         configJson['api']['account_service'] + '/Accounts/' + mockAccount_Id
+
     expected_OdataId = configJson['api']['account_service'] + '/Accounts'
     expected_respHeader_array = []
     r = do_get_request(url, 200, expected_OdataId,
@@ -250,8 +255,9 @@ def accountService3(my_headers):
     assert respBody['Name'] == mockAccount_Name and respBody['Description'] == mockAccount_Description and respBody[
         'UserName'] == mockAccount_Username and respBody['RoleId'] == mockAccount_RoleId
 
-    url = configJson['domain'] + \
-        configJson['api']['account_service'] + '/Accounts'
+    # attempt to delete new (patched) account
+    #url = configJson['domain'] + \
+    #    configJson['api']['account_service'] + '/Accounts'
     expected_respHeader_array = []
     r = do_delete_request(
         url, 200, reqBody, expected_respHeader_array, my_headers)
@@ -289,6 +295,7 @@ def taskService2(my_headers):
 
     url = configJson['domain'] + configJson['api']['task_service'] + '/Tasks'
     expected_respHeader_array = ['Location']
+
     r = do_post_request(url, 201, reqBody, None,
                         expected_respHeader_array, my_headers)
     respBody = json.loads(r.content)
@@ -431,6 +438,23 @@ def biosChangePassword(my_headers):
     assert len(
         respBody) == 1 and 'OldPassword in the action ChangePassword is invalid' in respBody[0]['error']['message']
 
+
+def managerResetAction(my_headers):
+    # this function uses the ManagerReset action to test the server's ability to
+    # process action requests.  For any valid request, an actioninfo object must exist, but
+    # these might not be present if the mockup used is directly from the DMTF repository.
+    #
+
+    url = configJson['domain'] + \
+          '/redfish/v1/Managers/IIoTManager/Actions/Manager.Reset'
+
+    expected_respHeader_array = []
+    r = do_post_request(url, 200, {}, None,
+                        expected_respHeader_array, my_headers)
+    respBody = json.loads(r.content)
+    assert "Success" in respBody['MessageId'] and respBody['Resolution'] == "None" and respBody['Severity'] == "OK"
+
+
 #The below request is used to test actions
 def actions(my_headers):
     print('Testing Actions....')
@@ -438,6 +462,11 @@ def actions(my_headers):
 
 
 if __name__ == '__main__':
+    # disable warnings from self-signed security certificate
+    from urllib3.exceptions import InsecureRequestWarning
+    from urllib3 import disable_warnings
+    disable_warnings(InsecureRequestWarning)
+
     loadConfigJsonFile()
     rootService()
     authHeader = sessionService()
@@ -446,7 +475,11 @@ if __name__ == '__main__':
         "Authorization": 'Bearer ' + authHeader
     }
     accountService(my_headers)
-    taskService(my_headers)
+    managerResetAction(my_headers)
+
+    # need another way to test the task service - assumptions made by this original code were wrong
+    # taskService(my_headers)
+
     eventService(my_headers)
     actions(my_headers)
     print('All Tests are Passed!')
