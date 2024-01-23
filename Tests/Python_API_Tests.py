@@ -109,7 +109,7 @@ def sessionService():
     expected_OdataId = '/redfish/v1/SessionService/Sessions/'
     expected_respHeader_array = ['Location', 'X-Auth-Token']
     reqBody = configJson['credentials']['auth']
-    r = do_post_request(url, 200, reqBody, expected_OdataId,
+    r = do_post_request(url, 201, reqBody, expected_OdataId,
                         expected_respHeader_array, None)
     respHeader = json.loads(json.dumps(dict(r.headers)))
     return respHeader['X-Auth-Token']
@@ -230,7 +230,8 @@ def accountService3(my_headers):
         "Name": mockAccount_Name,
         "Description": mockAccount_Description,
         "UserName": mockAccount_Username,
-        "RoleId": mockAccount_RoleId
+        "RoleId": mockAccount_RoleId,
+        "Password": "test"
     }
 
     url = url = configJson['domain'] + \
@@ -445,15 +446,19 @@ def managerResetAction(my_headers):
     # these might not be present if the mockup used is directly from the DMTF repository.
     #
 
+    my_headers = {"Content-Type": "application/json"}
+    body = {
+        "Parameters": {
+            "AmountPieces": 10,
+            "Flavors": ["Lemon"],
+            "Shape": "Sphere"
+        }
+    }
     url = configJson['domain'] + \
-          '/redfish/v1/Managers/IIoTManager/Actions/Manager.Reset'
-
-    expected_respHeader_array = []
-    r = do_post_request(url, 200, {}, None,
-                        expected_respHeader_array, my_headers)
-    respBody = json.loads(r.content)
-    assert "Success" in respBody['MessageId'] and respBody['Resolution'] == "None" and respBody['Severity'] == "OK"
-
+          '/redfish/v1/IIoTJobService/Documents/Recipe1/Actions/IIoTJobDocument.SubmitJob'
+    r = requests.post(url, json=body, headers=my_headers, verify=False)
+    print(r.request.method, " ", r.url, " ", r.status_code, " ", json.dumps(json.loads(r.content), indent=2))
+    assert False
 
 #The below request is used to test actions
 def actions(my_headers):
@@ -478,7 +483,7 @@ if __name__ == '__main__':
     managerResetAction(my_headers)
 
     # need another way to test the task service - assumptions made by this original code were wrong
-    # taskService(my_headers)
+    taskService(my_headers)
 
     eventService(my_headers)
     actions(my_headers)
