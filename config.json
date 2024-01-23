@@ -2,31 +2,29 @@
   "mockup_file_path":"~/git/IIOT_2_mockup/redfish/v1",
   "local_schema_path":"~/git/IIOT_2_schema",
   "credentials": {
-    "repository_destination": "~/temp",
+    "https_port": 8443,
+    "http_port": 8080,
+    "key_alias": "redfish_server",
+    "path_to_https_keystore": "${user.home}/keys/redfish.p12",
+    "key_store_password": "store_password",
+    "key_password": "store_password",
     "redfish_creds": {
       "mockup_url": "https://www.dmtf.org/sites/default/files/standards/documents/",
       "mockup_file_name": "DSP2043_2022.2",
-      "priviledge_file_name": "DSP8011_2022.2",
+      "privilege_file_name": "DSP8011_2022.2",
       "mockup_dir_name": "public-rackmount1"
     },
 
     "COMMENT": "============   DO NOT CHANGE ANY DATA BELOW THIS LINE ======================",
-    "repository_url": "https://github.com/PICMG/redfish_server_template.git",
-    "repo_name": "redfish_server_template",
     "mongo_creds": {
       "mongo_client_url": "mongodb://localhost:27017/",
       "mongo_database": "RedfishDB"
     },
     "schema_url": "https://redfish.dmtf.org/schemas/v1/openapi.yaml",
-    "schema_bundle_url":"https://www.dmtf.org/sites/default/files/standards/documents/DSP8010_2022.3.zip",
+    "schema_bundle_url":"https://www.dmtf.org/sites/default/files/standards/documents/DSP8010_2023.2.zip",
     "action_info_schema_url":"https://redfish.dmtf.org/schemas/v1/ActionInfo.yaml",
     "message_registry_schema_url":"https://redfish.dmtf.org/schemas/v1/MessageRegistry.yaml",
     "privilege_registry_schema_url":"https://redfish.dmtf.org/schemas/v1/PrivilegeRegistry.yaml",
-    "generator_url": "https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/4.3.1/openapi-generator-cli-4.3.1.jar",
-    "repo_all_models_path": "/redfish_server_template/src/main/java/org/picmg/redfish_server_template/RFmodels",
-    "repo_config_path": "/redfish_server_template/src/main/java/org/picmg/redfish_server_template/config",
-    "repo_server_pom_path": "/redfish_server_template",
-    "repo_all_models_dir_name": "AllModels",
     "index_file_name": "index.json"
   }
 }
