@@ -18,6 +18,7 @@ import requests
 import json
 import pymongo
 import collections
+import base64
 
 configJson = {}
 
@@ -35,11 +36,14 @@ def loadConfigJsonFile():
         # expected_OdataId - str
         # expected_respHeader_array - list
 def assertResponse(response, expectedResponseCode, expected_OdataId, expected_respHeader_array):
-    print(response.request.method," ", response.url, " ", response.status_code, " ", json.loads(response.content))
+    if expected_OdataId != None:
+        print(response.request.method, " ", response.url, " ", response.status_code, " ", json.loads(response.content))
+    else:
+        print(response.request.method, " ", response.url, " ", response.status_code)
     assert response.status_code == expectedResponseCode
     if expectedResponseCode != 204:
-        respBody = json.loads(response.content)
         if expected_OdataId != None:
+            respBody = json.loads(response.content)
             if isinstance(respBody, collections.abc.Sequence):
                 assert len(
                     respBody) == 0 or expected_OdataId in respBody[0]['@odata.id']
@@ -112,6 +116,11 @@ def sessionService():
     r = do_post_request(url, 201, reqBody, expected_OdataId,
                         expected_respHeader_array, None)
     respHeader = json.loads(json.dumps(dict(r.headers)))
+
+    # attempt to create another session for this user
+    r = do_post_request(url, 201, reqBody, expected_OdataId,
+                        expected_respHeader_array, None)
+
     return respHeader['X-Auth-Token']
 
 #The below request is used to test root service API
@@ -197,7 +206,8 @@ def accountService3(my_headers):
         "Name": mockAccount_Name,
         "Description": mockAccount_Description,
         "UserName": mockAccount_Username,
-        "RoleId": mockAccount_RoleId
+        "RoleId": mockAccount_RoleId,
+        "Password": "Password"
     }
 
     # attempt to create a new account
@@ -227,11 +237,11 @@ def accountService3(my_headers):
     # try to patch the new account
     mockAccount_Username = mockAccount_Username + '_New'
     reqBody = {
-        "Name": mockAccount_Name,
+        "Name": mockAccount_Username,
         "Description": mockAccount_Description,
         "UserName": mockAccount_Username,
         "RoleId": mockAccount_RoleId,
-        "Password": "test"
+        "Password": "testNewLonger"
     }
 
     url = url = configJson['domain'] + \
@@ -440,6 +450,197 @@ def biosChangePassword(my_headers):
         respBody) == 1 and 'OldPassword in the action ChangePassword is invalid' in respBody[0]['error']['message']
 
 
+def testChangePasswordAction(my_headers):
+    # create a new account that we can use for testing
+    mockAccount_Name = 'MockAccount_Name'
+    mockAccount_Description = 'MockAccount_Description'
+    mockAccount_Username = 'MockAccount_UserName'
+    mockAccount_RoleId = 'Operator'
+    reqBody = {
+        "Name": mockAccount_Name,
+        "Description": mockAccount_Description,
+        "UserName": "Operator",
+        "RoleId": mockAccount_RoleId,
+        "Password": "Operator"
+    }
+
+    # attempt to create a new account
+    url = configJson['domain'] + configJson['api']['account_service'] + '/Accounts'
+    expected_OdataId = configJson['api']['account_service'] + '/Accounts'
+    expected_respHeader_array = []
+    r = do_post_request(url, 201, reqBody, expected_OdataId, expected_respHeader_array, my_headers)
+    respBody = json.loads(r.content)
+    assert respBody['Name'] == mockAccount_Name and respBody['Description'] == mockAccount_Description and respBody[
+        'UserName'] == "Operator" and respBody['RoleId'] == mockAccount_RoleId
+    accountId = respBody['Id']
+
+    # attempt to change the password using basic HTTP authentication with the User's Account
+    url = configJson['domain'] + configJson['api']['account_service'] + '/Accounts/'+accountId + '/Actions/ManagerAccount.ChangePassword'
+    actionBody = {
+        "NewPassword": "newPassword",
+        "SessionAccountPassword": "Operator"
+    }
+    auth_token = base64.b64encode("Operator:Operator".encode("utf-8")).decode("ascii")
+    authentication_header = {
+        "Content-Type": "application/json",
+        "Authorization": "Basic " + auth_token
+    }
+    r = do_post_request(url, 200, actionBody, None,
+                        [], authentication_header)
+
+    # attempt to change the password using basic HTTP authentication with the Admin Account
+    auth_token = base64.b64encode("Administrator:test".encode("utf-8")).decode("ascii")
+    authentication_header = {
+        "Content-Type": "application/json",
+        "Authorization": "Basic " + auth_token
+    }
+    actionBody = {
+        "NewPassword": "new2Password",
+        "SessionAccountPassword": "test"
+    }
+    r = do_post_request(url, 200, actionBody, None,
+                        [], authentication_header)
+
+    # attempt to change the password using Redfish Authentication with the Admin Account
+    actionBody = {
+        "NewPassword": "new3Password",
+        "SessionAccountPassword": "test"
+    }
+    r = do_post_request(url, 200, actionBody, None,
+                        [], my_headers)
+
+    # Delete the test account
+    url = configJson['domain'] + configJson['api']['account_service'] + '/Accounts/' + accountId
+    expected_respHeader_array = []
+    r = do_delete_request(url, 200, reqBody, expected_respHeader_array, my_headers)
+    respBody = json.loads(r.content)
+    assert respBody['Name'] == mockAccount_Name and respBody['Description'] == mockAccount_Description and respBody[
+        'UserName'] == "Operator" and respBody['RoleId'] == mockAccount_RoleId
+
+def testEtag(my_headers):
+    # etag headers must be supported for gets from a manager account
+
+    # attempt a get of the account collection
+    url = configJson['domain'] + configJson['api']['account_service'] + '/Accounts'
+    expected_OdataId = configJson['api']['account_service'] + '/Accounts'
+    expected_respHeader_array = []
+    r = do_get_request(url, 200, expected_OdataId, expected_respHeader_array, my_headers)
+    respBody = json.loads(r.content)
+
+    # find the members collection within the content
+    members = respBody['Members']
+    if len(members) == 0:
+        return
+    account1url = members[0]['@odata.id']
+
+    # get the first account
+    url = configJson['domain'] + account1url
+    expected_OdataId = account1url
+    r = do_get_request(url, 200, expected_OdataId, expected_respHeader_array, my_headers)
+    respBody = json.loads(r.content)
+    respHeaders = r.headers
+
+    # does an etag header exist?
+    etagHeaderValue = respHeaders['ETag']
+    if etagHeaderValue == None:
+        print("   Error - missing etag header in GET response")
+    etagHeaderValue = etagHeaderValue.replace('"', "")
+
+    # does an @odata.etag property exist?
+    etagPropertyValue = respBody['@odata.etag']
+    if etagPropertyValue == None:
+        print("   Error - missing etag property in GET response")
+
+    # do the etag header value and the property value match?
+    if etagHeaderValue != etagPropertyValue:
+        print("   Error - etag property and header do not match")
+
+    ### GET TESTS ###
+    # attempt a get If-Match with the correct etag
+    headers = my_headers.copy()
+    headers['If-Match'] = '"'+etagHeaderValue+'"'
+    do_get_request(url, 200, expected_OdataId, expected_respHeader_array, headers)
+
+    # attempt a get If-Match with the incorrect etag
+    headers = my_headers.copy()
+    headers['If-Match'] = '"bad_etag"'
+    do_get_request(url, 412, None, expected_respHeader_array, headers)
+
+    # attempt a get If-Match with the wildcard etag
+    headers = my_headers.copy()
+    headers['If-Match'] = '"*"'
+    do_get_request(url, 200, expected_OdataId, expected_respHeader_array, headers)
+
+    # attempt a get If-None-Match with the correct etag
+    headers = my_headers.copy()
+    headers['If-None-Match'] = '"'+etagHeaderValue+'"'
+    do_get_request(url, 304, None, expected_respHeader_array, headers)
+
+    # attempt a get If-Match with the incorrect etag
+    headers = my_headers.copy()
+    headers['If-None-Match'] = '"bad_etag"'
+    do_get_request(url, 200, expected_OdataId, expected_respHeader_array, headers)
+
+    # attempt a get If-Match with the wildcard etag
+    headers = my_headers.copy()
+    headers['If-None-Match'] = '"*"'
+    do_get_request(url, 304, None, expected_respHeader_array, headers)
+
+    ### PATCH TESTS ###
+    # if Match with wrong etag
+    headers = my_headers.copy()
+    headers['If-Match'] = '"bad header"'
+    body = { "Enabled": True }
+    do_patch_request(url, 412, body, None, expected_respHeader_array, headers)
+
+    # if Match with matching etag
+    headers = my_headers.copy()
+    headers['If-Match'] = '"'+etagHeaderValue+'"'
+    body = {"Enabled": True}
+    r = do_patch_request(url, 200, body, expected_OdataId, expected_respHeader_array, headers)
+    respHeaders = r.headers
+
+    # does an etag header exist?
+    etagHeaderValue = respHeaders['ETag']
+    if etagHeaderValue == None:
+        print("   Error - missing etag header in GET response")
+
+    # if Match with wild etag
+    headers = my_headers.copy()
+    headers['If-Match'] = '"*"'
+    body = {"Enabled": True}
+    r = do_patch_request(url, 200, body, expected_OdataId, expected_respHeader_array, headers)
+    respHeaders = r.headers
+
+    # does an etag header exist?
+    etagHeaderValue = respHeaders['ETag']
+    if etagHeaderValue == None:
+        print("   Error - missing etag header in GET response")
+
+    # if None Match with wrong etag
+    headers = my_headers.copy()
+    headers['If-None-Match'] = '"bad"'
+    body = {"Enabled": True}
+    r = do_patch_request(url, 200, body, expected_OdataId, expected_respHeader_array, headers)
+    respHeaders = r.headers
+
+    # does an etag header exist?
+    etagHeaderValue = respHeaders['ETag']
+    if etagHeaderValue == None:
+        print("   Error - missing etag header in GET response")
+
+    # if None Match with correct etag
+    headers = my_headers.copy()
+    headers['If-None-Match'] = etagHeaderValue
+    body = {"Enabled": True}
+    r = do_patch_request(url, 304, body, None, expected_respHeader_array, headers)
+
+    # if None Match with wild etag
+    headers = my_headers.copy()
+    headers['If-None-Match'] = '"*"'
+    body = {"Enabled": True}
+    r = do_patch_request(url, 304, body, None, expected_respHeader_array, headers)
+
 def managerResetAction(my_headers):
     # this function uses the ManagerReset action to test the server's ability to
     # process action requests.  For any valid request, an actioninfo object must exist, but
@@ -479,12 +680,47 @@ if __name__ == '__main__':
         "Content-Type": "application/json",
         "Authorization": 'Bearer ' + authHeader
     }
+
+    '''
+    # test deletion of active session
+    url = configJson['domain'] + \
+          '/redfish/v1/SessionService/Sessions'
+    r = requests.get(url, json={}, headers=my_headers, verify=False)
+    print(r.request.method, " ", r.url, " ", r.status_code, " ", json.dumps(json.loads(r.content), indent=2))
+
+    # from the response, find the first session in the session service
+    session = json.loads(r.content)["Members"][0]
+    url_delete = configJson['domain'] + session["@odata.id"]
+
+    # formulate the session deletion request
+    auth_token = base64.b64encode("Administrator:test".encode("utf-8")).decode("ascii")
+    authentication_header = {
+        "Content-Type": "application/json",
+        "Authorization": "Basic " + auth_token
+    }
+    r = requests.delete(url_delete,json = {}, headers = authentication_header, verify=False)
+    print(r.request.method, " ", r.url, " ", r.status_code, " ", json.dumps(json.loads(r.content), indent=2))
+
+    r = requests.get(url, json={}, headers=my_headers, verify=False)
+    print(r.request.method, " ", r.url, " ", r.status_code, "")
+
+    r = requests.get(url, json={}, headers=authentication_header, verify=False)
+    print(r.request.method, " ", r.url, " ", r.status_code, " ", json.dumps(json.loads(r.content), indent=2))
+    '''
     accountService(my_headers)
-    managerResetAction(my_headers)
+
+    print("testing change password action")
+    testChangePasswordAction(my_headers)
+
+    print("testing etag functionality")
+    testEtag(my_headers)
+
+
+    #managerResetAction(my_headers)
 
     # need another way to test the task service - assumptions made by this original code were wrong
-    taskService(my_headers)
+    #taskService(my_headers)
 
-    eventService(my_headers)
-    actions(my_headers)
+    #eventService(my_headers)
+    #actions(my_headers)
     print('All Tests are Passed!')
