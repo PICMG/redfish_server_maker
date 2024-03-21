@@ -19,8 +19,48 @@ import json
 import pymongo
 import collections
 import base64
+import sseclient
+import threading
+import queue
+import urllib3
 
 configJson = {}
+
+class SseListener:
+    events = queue.Queue(1024)
+    sseheaders = {}
+    sseurl = ""
+    tid = None
+    response = None
+
+    def __init__(self, url, my_headers, filter):
+        print("Initializing thread")
+        self.sseurl = url + '?filter=' + filter
+        self.sseheaders = my_headers.copy()
+        self.sseheaders['Accept'] = 'text/event-stream'
+        timeout = urllib3.Timeout(10.0e6, 10.0e6, 10.0e6)
+        http = urllib3.PoolManager(cert_reqs='CERT_NONE', timeout=timeout)
+        self.response = http.request('GET', self.sseurl, preload_content=False, headers=self.sseheaders)
+        self.tid = threading.Thread(target=self.thread_task)
+        self.tid.start()
+
+    def __del__(self):
+        self.response.close()
+
+
+    def thread_task(self):
+        print("Thread Started")
+        client = sseclient.SSEClient(self.response)
+        for event in client.events():
+            print("Adding Event")
+            self.events.put(event)
+
+    def has_event(self):
+        return not self.events.empty()
+
+    def get_event(self):
+        return self.events.get()
+
 
 #The below function loads the config file.
 def loadConfigJsonFile():
@@ -29,6 +69,7 @@ def loadConfigJsonFile():
     global credentials
     with open("config.json", 'r') as f:
         configJson = json.load(f)
+
 
 # The type of parameters of below function are as below
         # response - Requests.response
@@ -667,10 +708,111 @@ def actions(my_headers):
     biosChangePassword(my_headers)
 
 
+def get_list_of_subscriptions(my_headers):
+    url = configJson['domain'] + \
+          '/redfish/v1/EventService/Subscriptions'
+    r = requests.get(url, headers=my_headers, verify=False)
+    if r.status_code!=200:
+        assert False
+    subscriptions = json.loads(r.content)['Members']
+    result = []
+    for sub in subscriptions:
+        result.append(sub['@odata.id'])
+    return result
+
+
+def test_events(my_headers):
+
+    # remove any existing subscriptions
+    subscriptions = get_list_of_subscriptions(my_headers)
+    for suburi in subscriptions:
+        do_delete_request(configJson['domain'] + suburi, 200, {}, [], my_headers)
+
+    ########################
+    # test deletion of event destination
+    ########################
+    # crate a new SSE subscription
+    url = configJson['domain'] + '/redfish/v1/EventService/SSE'
+    my_filter = "MessageId eq 'Base.Created'"
+    client = SseListener(url, my_headers, my_filter)
+
+    # verify that it was created
+    subscriptions = get_list_of_subscriptions(my_headers)
+    if len(subscriptions) != 1:
+        print("   Failure: SSE connection not created")
+        assert False
+    print("   Success: SSE connection created")
+
+    # attempt to delete the subscription from the subscription list
+    do_delete_request(configJson['domain']+subscriptions[0], 200, {}, [], my_headers)
+
+    subscriptions = get_list_of_subscriptions(my_headers)
+    if len(subscriptions) != 0:
+        print("   Failure: SSE connection was not removed")
+        assert False
+    print("   Success: SSE connection removed")
+
+    del client
+
+    ########################
+    # test event generation
+    ########################
+    # crate a new SSE subscription
+    client = SseListener(url, my_headers, my_filter)
+
+    # verify that it was created
+    subscriptions = get_list_of_subscriptions(my_headers)
+
+    if len(subscriptions) != 1:
+        print("   Failure: SSE connection not created")
+        assert False
+    print("   Success: SSE connection created")
+
+    # sending SubmitTestEvent action for Base.Created message
+    print("sending SubmitTestEvent action for Base.Created message")
+    action_body = {
+            "MessageArgs": [],
+            "MessageId": 'Base.Created',
+            "MessageSeverity": "OK",
+            "OriginOfCondition": "/redfish/v1/EventService",
+            "Severity": "OK"
+        }
+
+    action_url = configJson['domain'] + '/redfish/v1/EventService/Actions/EventService.SubmitTestEvent'
+    r = requests.post(action_url, json=action_body, headers=my_headers, verify=False)
+    if r.text:
+        print(json.loads(r.content))
+    else:
+        print(r.request.method, " ", r.url, " ", r.status_code)
+
+    # get and print the event
+    event = client.get_event()
+    print(event.data.strip())
+
+    action_body={}
+    print("Attempting Service TestEventSubscription Action")
+    action_url = configJson['domain'] + '/redfish/v1/EventService/Actions/EventService.TestEventSubscription'
+    r = requests.post(action_url, json=action_body, headers=my_headers, verify=False)
+    if r.text:
+        print(json.loads(r.content))
+    else:
+        print(r.request.method, " ", r.url, " ", r.status_code)
+
+    # get and print the event
+    if client.has_event():
+        event = client.get_event()
+        print(event.data.strip())
+
+    # remove the SSE connection and clean up the threads
+    do_delete_request(configJson['domain']+subscriptions[0], 200, {}, [], my_headers)
+    del client
+
+
 if __name__ == '__main__':
     # disable warnings from self-signed security certificate
     from urllib3.exceptions import InsecureRequestWarning
-    from urllib3 import disable_warnings
+    from urllib3 import disable_warnings, PoolManager
+
     disable_warnings(InsecureRequestWarning)
 
     loadConfigJsonFile()
@@ -715,6 +857,8 @@ if __name__ == '__main__':
     print("testing etag functionality")
     testEtag(my_headers)
 
+    print("testing event service")
+    test_events(my_headers)
 
     #managerResetAction(my_headers)
 
