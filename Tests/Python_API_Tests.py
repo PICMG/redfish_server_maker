@@ -149,6 +149,8 @@ def do_delete_request(url, expectedResponseCode, reqBody, expected_respHeader_ar
 #The below request is used to test session service APIs
 def sessionService():
     print('Testing Session Service....')
+
+    print('Creating Session with proper credentials....')
     url = configJson['domain'] + \
         configJson['api']['session_service'] + '/Sessions'
     expected_OdataId = '/redfish/v1/SessionService/Sessions/'
@@ -159,8 +161,16 @@ def sessionService():
     respHeader = json.loads(json.dumps(dict(r.headers)))
 
     # attempt to create another session for this user
+    print('Attempting to create duplicate session....')
     r = do_post_request(url, 201, reqBody, expected_OdataId,
                         expected_respHeader_array, None)
+
+    # attempt to create another session for this user
+    print('Attempting signon with invalid credentials....')
+    reqBody = configJson['credentials']['auth']
+    reqBody["Password"]="awrongpassword"
+    r = do_post_request(url, 400, reqBody, None,
+                        [] , None)
 
     return respHeader['X-Auth-Token']
 
@@ -227,7 +237,7 @@ def accountService1(my_headers):
     do_get_request(url, 200, expected_OdataId,
                    expected_respHeader_array, my_headers)
 
-#The below request is used to test account service get API
+#The below request is used to test account service accounts get API
 def accountService2(my_headers):
     url = configJson['domain'] + \
         configJson['api']['account_service'] + '/Accounts'
@@ -242,7 +252,7 @@ def accountService3(my_headers):
     mockAccount_Name = 'MockAccount_Name'
     mockAccount_Description = 'MockAccount_Description'
     mockAccount_Username = 'MockAccount_UserName'
-    mockAccount_RoleId = 'Administrator'
+    mockAccount_RoleId = 'Operator'
     reqBody = {
         "Name": mockAccount_Name,
         "Description": mockAccount_Description,
@@ -252,6 +262,7 @@ def accountService3(my_headers):
     }
 
     # attempt to create a new account
+    print("   Creating new account "+mockAccount_Username)
     url = configJson['domain'] + \
         configJson['api']['account_service'] + '/Accounts'
     expected_OdataId = configJson['api']['account_service'] + '/Accounts'
@@ -275,8 +286,55 @@ def accountService3(my_headers):
     assert respBody['Name'] == mockAccount_Name and respBody['Description'] == mockAccount_Description and respBody[
         'UserName'] == mockAccount_Username and respBody['RoleId'] == mockAccount_RoleId
 
-    # try to patch the new account
-    mockAccount_Username = mockAccount_Username + '_New'
+    # try to patch the new account using account credentials
+    print("   Patching new account using account credentials "+mockAccount_Username)
+    auth_token = base64.b64encode((mockAccount_Username+":Password").encode("utf-8")).decode("ascii")
+    authentication_header = {
+        "Content-Type": "application/json",
+        "Authorization": "Basic " + auth_token
+    }
+    reqBody = {
+        "Name": mockAccount_Username+"_New",
+        "Description": mockAccount_Description,
+        "UserName": mockAccount_Username,
+        "RoleId": mockAccount_RoleId,
+        "Password": "testNewLonger"
+    }
+    url = url = configJson['domain'] + \
+                configJson['api']['account_service'] + '/Accounts/' + mockAccount_Id
+    expected_respHeader_array = []
+
+    r = do_patch_request(url, 401, reqBody, None,
+                         expected_respHeader_array, authentication_header)
+
+    # Patching the account = just changing the password
+    print("   Patching new account using account credentials (Just Password)"+mockAccount_Username)
+    auth_token = base64.b64encode((mockAccount_Username+":Password").encode("utf-8")).decode("ascii")
+    authentication_header = {
+        "Content-Type": "application/json",
+        "Authorization": "Basic " + auth_token
+    }
+    reqBody = {
+        "Password": "testNewLonger"
+    }
+    url = url = configJson['domain'] + \
+                configJson['api']['account_service'] + '/Accounts/' + mockAccount_Id
+    expected_respHeader_array = []
+
+    r = do_patch_request(url, 200, reqBody, None,
+                         expected_respHeader_array, authentication_header)
+    respBody = json.loads(r.content)
+    assert respBody['Name'] == mockAccount_Name and respBody['Description'] == mockAccount_Description and respBody[
+        'UserName'] == mockAccount_Username and respBody['RoleId'] == mockAccount_RoleId
+
+    # Attempting to patch the account (including password) using admin credentials
+    url = url = configJson['domain'] + \
+                configJson['api']['account_service'] + '/Accounts/' + mockAccount_Id
+    expected_respHeader_array = []
+
+    r = do_patch_request(url, 200, reqBody, None,
+                         expected_respHeader_array, my_headers)
+    mockAccount_Username = mockAccount_Username+"_New"
     reqBody = {
         "Name": mockAccount_Username,
         "Description": mockAccount_Description,
@@ -310,6 +368,7 @@ def accountService3(my_headers):
     # attempt to delete new (patched) account
     #url = configJson['domain'] + \
     #    configJson['api']['account_service'] + '/Accounts'
+    print ("   Deleting patched account")
     expected_respHeader_array = []
     r = do_delete_request(
         url, 200, reqBody, expected_respHeader_array, my_headers)
@@ -515,7 +574,7 @@ def testChangePasswordAction(my_headers):
         'UserName'] == "Operator" and respBody['RoleId'] == mockAccount_RoleId
     accountId = respBody['Id']
 
-    # attempt to change the password using basic HTTP authentication with the User's Account
+    # 1. attempt to change the password using basic HTTP authentication with the User's Account
     url = configJson['domain'] + configJson['api']['account_service'] + '/Accounts/'+accountId + '/Actions/ManagerAccount.ChangePassword'
     actionBody = {
         "NewPassword": "newPassword",
@@ -529,7 +588,7 @@ def testChangePasswordAction(my_headers):
     r = do_post_request(url, 200, actionBody, None,
                         [], authentication_header)
 
-    # attempt to change the password using basic HTTP authentication with the Admin Account
+    # 2. attempt to change the password using basic HTTP authentication with the Admin Account
     auth_token = base64.b64encode("Administrator:test".encode("utf-8")).decode("ascii")
     authentication_header = {
         "Content-Type": "application/json",
@@ -542,7 +601,7 @@ def testChangePasswordAction(my_headers):
     r = do_post_request(url, 200, actionBody, None,
                         [], authentication_header)
 
-    # attempt to change the password using Redfish Authentication with the Admin Account
+    # 3. attempt to change the password using Redfish Authentication with the Admin Account
     actionBody = {
         "NewPassword": "new3Password",
         "SessionAccountPassword": "test"
