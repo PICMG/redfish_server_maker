@@ -620,22 +620,32 @@ def testChangePasswordAction(my_headers):
 def testEtag(my_headers):
     # etag headers must be supported for gets from a manager account
 
-    # attempt a get of the account collection
+    # create a new account that we can use for testing
+    mockAccount_Name = 'MockAccount_Name'
+    mockAccount_Description = 'MockAccount_Description'
+    mockAccount_Username = 'Operator'
+    mockAccount_RoleId = 'Operator'
+    reqBody = {
+        "Name": mockAccount_Name,
+        "Description": mockAccount_Description,
+        "UserName": mockAccount_Username,
+        "RoleId": mockAccount_RoleId,
+        "Password": "Operator"
+    }
+
+    # attempt to create a new account
     url = configJson['domain'] + configJson['api']['account_service'] + '/Accounts'
     expected_OdataId = configJson['api']['account_service'] + '/Accounts'
     expected_respHeader_array = []
-    r = do_get_request(url, 200, expected_OdataId, expected_respHeader_array, my_headers)
+    r = do_post_request(url, 201, reqBody, expected_OdataId, expected_respHeader_array, my_headers)
     respBody = json.loads(r.content)
+    assert respBody['Name'] == mockAccount_Name and respBody['Description'] == mockAccount_Description and respBody[
+        'UserName'] == "Operator" and respBody['RoleId'] == mockAccount_RoleId
+    accountid = respBody['@odata.id']
 
-    # find the members collection within the content
-    members = respBody['Members']
-    if len(members) == 0:
-        return
-    account1url = members[0]['@odata.id']
-
-    # get the first account
-    url = configJson['domain'] + account1url
-    expected_OdataId = account1url
+    # get the test account
+    url = configJson['domain'] + accountid
+    expected_OdataId = accountid
     r = do_get_request(url, 200, expected_OdataId, expected_respHeader_array, my_headers)
     respBody = json.loads(r.content)
     respHeaders = r.headers
@@ -740,6 +750,14 @@ def testEtag(my_headers):
     headers['If-None-Match'] = '"*"'
     body = {"Enabled": True}
     r = do_patch_request(url, 304, body, None, expected_respHeader_array, headers)
+
+    # Delete the test account
+    url = configJson['domain'] + accountid
+    expected_respHeader_array = []
+    r = do_delete_request(url, 200, reqBody, expected_respHeader_array, my_headers)
+    respBody = json.loads(r.content)
+    assert respBody['Name'] == mockAccount_Name and respBody['Description'] == mockAccount_Description and respBody[
+        'UserName'] == "Operator" and respBody['RoleId'] == mockAccount_RoleId
 
 def managerResetAction(my_headers):
     # this function uses the ManagerReset action to test the server's ability to
