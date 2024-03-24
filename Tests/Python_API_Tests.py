@@ -47,7 +47,6 @@ class SseListener:
     def __del__(self):
         self.response.close()
 
-
     def thread_task(self):
         print("Thread Started")
         client = sseclient.SSEClient(self.response)
@@ -62,7 +61,7 @@ class SseListener:
         return self.events.get()
 
 
-#The below function loads the config file.
+# The below function loads the config file.
 def loadConfigJsonFile():
     print('Loading Config File....')
     global configJson
@@ -77,13 +76,13 @@ def loadConfigJsonFile():
         # expected_OdataId - str
         # expected_respHeader_array - list
 def assertResponse(response, expectedResponseCode, expected_OdataId, expected_respHeader_array):
-    if expected_OdataId != None:
+    if expected_OdataId is not None:
         print(response.request.method, " ", response.url, " ", response.status_code, " ", json.loads(response.content))
     else:
         print(response.request.method, " ", response.url, " ", response.status_code)
     assert response.status_code == expectedResponseCode
     if expectedResponseCode != 204:
-        if expected_OdataId != None:
+        if expected_OdataId is not None:
             respBody = json.loads(response.content)
             if isinstance(respBody, collections.abc.Sequence):
                 assert len(
@@ -92,7 +91,7 @@ def assertResponse(response, expectedResponseCode, expected_OdataId, expected_re
                 assert expected_OdataId in respBody['@odata.id']
     respHeader = json.loads(json.dumps(dict(response.headers)))
     for respH in expected_respHeader_array:
-        assert respHeader[respH] != None and respHeader[respH] != ''
+        assert respHeader[respH] is not None and respHeader[respH] != ''
 
 # The type of parameters of below function are as below
         # url - str
@@ -107,12 +106,12 @@ def do_get_request(url, expectedResponseCode, expected_OdataId, expected_respHea
     return r
 
 # The type of parameters of below function are as below
-        # url - str
-        # expectedResponseCode - integer
-        # reqBody - dict
-        # expected_OdataId - str
-        # expected_respHeader_array - list
-        # my_headers - dict
+# url - str
+# expectedResponseCode - integer
+# reqBody - dict
+# expected_OdataId - str
+# expected_respHeader_array - list
+# my_headers - dict
 def do_post_request(url, expectedResponseCode, reqBody, expected_OdataId, expected_respHeader_array, my_headers):
     if my_headers == None:
         my_headers = {"Content-Type": "application/json"}
@@ -122,12 +121,12 @@ def do_post_request(url, expectedResponseCode, reqBody, expected_OdataId, expect
     return r
 
 # The type of parameters of below function are as below
-        # url - str
-        # expectedResponseCode - integer
-        # reqBody - dict
-        # expected_OdataId - str
-        # expected_respHeader_array - list
-        # my_headers - dict
+# url - str
+# expectedResponseCode - integer
+# reqBody - dict
+# expected_OdataId - str
+# expected_respHeader_array - list
+# my_headers - dict
 def do_patch_request(url, expectedResponseCode, reqBody, expected_OdataId, expected_respHeader_array, my_headers):
     r = requests.patch(url, json=reqBody, headers=my_headers, verify=False)
     assertResponse(r, expectedResponseCode, expected_OdataId,
@@ -135,18 +134,18 @@ def do_patch_request(url, expectedResponseCode, reqBody, expected_OdataId, expec
     return r
 
 # The type of parameters of below function are as below
-        # url - str
-        # expectedResponseCode - integer
-        # reqBody - dict
-        # expected_respHeader_array - list
-        # my_headers - dict
+# url - str
+# expectedResponseCode - integer
+# reqBody - dict
+# expected_respHeader_array - list
+# my_headers - dict
 def do_delete_request(url, expectedResponseCode, reqBody, expected_respHeader_array, my_headers):
     r = requests.delete(url, json=reqBody, headers=my_headers, verify=False)
     assertResponse(r, expectedResponseCode, None,
                    expected_respHeader_array)
     return r
 
-#The below request is used to test session service APIs
+# The below request is used to test session service APIs
 def sessionService():
     print('Testing Session Service....')
 
@@ -157,20 +156,20 @@ def sessionService():
     expected_respHeader_array = ['Location', 'X-Auth-Token']
     reqBody = configJson['credentials']['auth']
     r = do_post_request(url, 201, reqBody, expected_OdataId,
-                        expected_respHeader_array, None)
+                        expected_respHeader_array, [])
     respHeader = json.loads(json.dumps(dict(r.headers)))
 
     # attempt to create another session for this user
     print('Attempting to create duplicate session....')
     r = do_post_request(url, 201, reqBody, expected_OdataId,
-                        expected_respHeader_array, None)
+                        expected_respHeader_array, [])
 
     # attempt to create another session for this user
     print('Attempting signon with invalid credentials....')
     reqBody = configJson['credentials']['auth']
     reqBody["Password"]="awrongpassword"
     r = do_post_request(url, 400, reqBody, None,
-                        [] , None)
+                        [], [])
 
     return respHeader['X-Auth-Token']
 
@@ -885,6 +884,172 @@ def test_events(my_headers):
     del client
 
 
+
+def test_account_lockout(my_headers):
+    # get the account service capabilities
+    print("   Reading account service configuration")
+    url = configJson['domain'] + '/redfish/v1/AccountService'
+    expected_OdataId = configJson['api']['account_service']
+    expected_respHeader_array = []
+    r = do_get_request(url, 200, expected_OdataId, expected_respHeader_array, my_headers)
+    accountService = json.loads(r.content)
+
+    print("   Creating the test account")
+    reqBody = {
+        "Name": "mockAccount_Name",
+        "Description": "mockAccount_Description",
+        "UserName": "Operator",
+        "RoleId": "Administrator",
+        "Password": "Operator"
+    }
+    url = configJson['domain'] + configJson['api']['account_service'] + '/Accounts'
+    expected_OdataId = configJson['api']['account_service'] + '/Accounts'
+    expected_respHeader_array = []
+    r = do_post_request(url, 201, reqBody, expected_OdataId, expected_respHeader_array, my_headers)
+    respBody = json.loads(r.content)
+    accountUri = respBody['@odata.id']
+    url = configJson['domain']+accountUri
+
+    print("   Testing access with repeated bad passwords")
+    bad_token = base64.b64encode("Operator:bogus_password".encode("utf-8")).decode("ascii")
+    my_bad_auth = {"Content-Type": "application/json","Authorization": 'Basic ' + bad_token}
+    for i in range(0, accountService["AccountLockoutThreshold"]):
+        # attempt to access the account with an invalid password (HTTP basic)
+        do_get_request(url, 401, None, [], my_bad_auth)
+
+        # now read with the administrator account to make sure the lock has not occurred
+        r = do_get_request(url, 200, accountUri, [], my_headers)
+        body = json.loads(r.content)
+        assert body["Locked"] is False
+
+    # attempt one more access and make sure the account is locked
+    do_get_request(url, 401, None, [], my_bad_auth)
+
+    # now read with the administrator account to make sure the lock has not occurred
+    r = do_get_request(url, 200, accountUri, [], my_headers)
+    body = json.loads(r.content)
+    assert body["Locked"] is True
+
+    # Delete the test account
+    url = configJson['domain'] + accountUri
+    expected_respHeader_array = []
+    do_delete_request(url, 200, reqBody, expected_respHeader_array, my_headers)
+
+
+def test_password_change_required_with_patch(my_headers):
+    # get the account service capabilities
+    print("   Reading account service configuration")
+    url = configJson['domain'] + '/redfish/v1/AccountService'
+    expected_OdataId = configJson['api']['account_service']
+    expected_respHeader_array = []
+    r = do_get_request(url, 200, expected_OdataId, expected_respHeader_array, my_headers)
+    accountService = json.loads(r.content)
+
+    print("   Creating the test account")
+    reqBody = {
+        "Name": "mockAccount_Name",
+        "Description": "mockAccount_Description",
+        "UserName": "Operator",
+        "RoleId": "Administrator",
+        "Password": "Operator",
+        "PasswordChangeRequired": True
+    }
+    url = configJson['domain'] + configJson['api']['account_service'] + '/Accounts'
+    expected_OdataId = configJson['api']['account_service'] + '/Accounts'
+    expected_respHeader_array = []
+    r = do_post_request(url, 201, reqBody, expected_OdataId, expected_respHeader_array, my_headers)
+    respBody = json.loads(r.content)
+    accountUri = respBody['@odata.id']
+    url = configJson['domain']+accountUri
+
+    print("   Attempt to access resources that are allowed with restricted access")
+    account_token = base64.b64encode("Operator:Operator".encode("utf-8")).decode("ascii")
+    account_headers = {"Content-Type": "application/json","Authorization": 'Basic ' + account_token}
+    do_get_request(url, 200, accountUri, [], account_headers)
+    do_get_request(configJson['domain']+'/redfish/v1', 200, '/redfish/v1', [], account_headers)
+
+    print("   Attempt to access resources that are not allowed with restricted access but allowed with unrestricted")
+    do_get_request(configJson['domain']+'/redfish/v1/AccountService', 403, None, [], account_headers)
+    do_get_request(configJson['domain']+'/redfish/v1/SessionService', 403, None, [], account_headers)
+
+    # attempt to reset the password using a patch to the resource
+    reqBody = {
+        "Password": "Operator2",
+    }
+    do_patch_request(url,200, reqBody, accountUri, [], account_headers );
+    r = do_get_request(url, 200, accountUri, [],my_headers);
+    body = json.loads(r.content)
+    assert body["PasswordChangeRequired"] is False
+
+    # Delete the test account
+    url = configJson['domain'] + accountUri
+    expected_respHeader_array = []
+    do_delete_request(url, 200, reqBody, expected_respHeader_array, my_headers)
+
+
+def test_password_change_required_with_action(my_headers):
+    # get the account service capabilities
+    print("   Reading account service configuration")
+    url = configJson['domain'] + '/redfish/v1/AccountService'
+    expected_OdataId = configJson['api']['account_service']
+    expected_respHeader_array = []
+    r = do_get_request(url, 200, expected_OdataId, expected_respHeader_array, my_headers)
+    accountService = json.loads(r.content)
+
+    print("   Creating the test account")
+    reqBody = {
+        "Name": "mockAccount_Name",
+        "Description": "mockAccount_Description",
+        "UserName": "Operator",
+        "RoleId": "Administrator",
+        "Password": "Operator",
+        "PasswordChangeRequired": True
+    }
+    url = configJson['domain'] + configJson['api']['account_service'] + '/Accounts'
+    expected_OdataId = configJson['api']['account_service'] + '/Accounts'
+    expected_respHeader_array = []
+    r = do_post_request(url, 201, reqBody, expected_OdataId, expected_respHeader_array, my_headers)
+    respBody = json.loads(r.content)
+    accountUri = respBody['@odata.id']
+    accountUrl = configJson['domain']+accountUri
+
+    print("   Attempting to create a new session using the new account")
+    url = configJson['domain'] + '/redfish/v1/SessionService/Sessions'
+    expected_OdataId = '/redfish/v1/SessionService/Sessions/'
+    expected_respHeader_array = ['Location', 'X-Auth-Token']
+    reqBody = {
+        "UserName": "Operator",
+        "Password": "Operator"
+    }
+    r = do_post_request(url, 201, reqBody, expected_OdataId,
+                        expected_respHeader_array, [])
+    respHeader = json.loads(json.dumps(dict(r.headers)))
+    sessionUri = respHeader['Location']
+    sessionUrl = configJson['domain']+sessionUri
+
+    print("   Attempting to change the password using the ChangePassword action")
+    accountSessionHeaders =  {
+        "Content-Type": "application/json",
+        "Authorization": 'Bearer ' + respHeader['X-Auth-Token']
+    }
+    actionurl = configJson['domain'] + accountUri + '/Actions/ManagerAccount.ChangePassword'
+    actionBody = {
+        "NewPassword": "newPassword",
+        "SessionAccountPassword": "Operator"
+    }
+    do_post_request(actionurl, 200, actionBody, None,
+                        [], accountSessionHeaders)
+    r = do_get_request(accountUrl, 200, accountUri, [], accountSessionHeaders)
+    body = json.loads(r.content)
+    assert body["PasswordChangeRequired"] is False
+
+    # Delete the test account
+    print("   Attempting to delete the session and account")
+    expected_respHeader_array = []
+    do_delete_request(sessionUrl, 200, {}, [], accountSessionHeaders)
+    do_delete_request(accountUrl, 200, {}, [], my_headers)
+
+
 if __name__ == '__main__':
     # disable warnings from self-signed security certificate
     from urllib3.exceptions import InsecureRequestWarning
@@ -936,6 +1101,15 @@ if __name__ == '__main__':
 
     print("testing event service")
     test_events(my_headers)
+
+    print("tesing password lockout")
+    test_account_lockout(my_headers)
+
+    print("tesing password change required part 1")
+    test_password_change_required_with_patch(my_headers)
+
+    print("tesing password change required part 2")
+    test_password_change_required_with_action(my_headers)
 
     #managerResetAction(my_headers)
 
