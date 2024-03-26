@@ -1043,11 +1043,23 @@ def test_password_change_required_with_action(my_headers):
     body = json.loads(r.content)
     assert body["PasswordChangeRequired"] is False
 
-    # Delete the test account
-    print("   Attempting to delete the session and account")
-    expected_respHeader_array = []
-    do_delete_request(sessionUrl, 200, {}, [], accountSessionHeaders)
-    do_delete_request(accountUrl, 200, {}, [], my_headers)
+def send_test_event_to_all_subscribers():
+    # sending SubmitTestEvent action for Base.Created message
+    print("sending SubmitTestEvent action for Base.Created message")
+    action_body = {
+            "MessageArgs": [],
+            "MessageId": 'Base.Created',
+            "MessageSeverity": "OK",
+            "OriginOfCondition": "/redfish/v1/EventService",
+            "Severity": "OK"
+        }
+
+    action_url = configJson['domain'] + '/redfish/v1/EventService/Actions/EventService.SubmitTestEvent'
+    r = requests.post(action_url, json=action_body, headers=my_headers, verify=False)
+    if r.text:
+        print(json.loads(r.content))
+    else:
+        print(r.request.method, " ", r.url, " ", r.status_code)
 
 
 if __name__ == '__main__':
@@ -1064,6 +1076,8 @@ if __name__ == '__main__':
         "Content-Type": "application/json",
         "Authorization": 'Bearer ' + authHeader
     }
+
+    send_test_event_to_all_subscribers()
 
     '''
     # test deletion of active session
